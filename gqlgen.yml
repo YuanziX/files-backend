@@ -19,6 +19,11 @@ autobind:
   - "github.com/YuanziX/files-backend/internal/database/postgres"
 
 models:
+  User:
+    model: "github.com/YuanziX/files-backend/internal/database/postgres.User"
+  Share:
+    model: "github.com/YuanziX/files-backend/internal/database/postgres.Share"
+
   Time:
     model:
       - github.com/99designs/gqlgen/graphql.Time

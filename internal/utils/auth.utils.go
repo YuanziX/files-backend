@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/YuanziX/files-backend/internal/middleware"
 )
@@ -15,7 +14,6 @@ const (
 
 func GetUserID(ctx context.Context) (string, bool) {
 	id, ok := ctx.Value(middleware.UserIDKey).(string)
-	log.Printf("GetUserID: %s, found: %v", id, ok)
 	return id, ok
 }
 

@@ -11,6 +11,7 @@ import (
 
 	"github.com/YuanziX/files-backend/internal/config"
 	"github.com/YuanziX/files-backend/internal/database/postgres"
+	"github.com/YuanziX/files-backend/internal/graph/directive"
 	"github.com/YuanziX/files-backend/internal/graph/generated"
 	"github.com/YuanziX/files-backend/internal/graph/resolver"
 	custom_middleware "github.com/YuanziX/files-backend/internal/middleware"
@@ -37,14 +38,22 @@ func New(db postgres.Querier, cfg *config.Config) *Server {
 		S3BucketName:    cfg.S3BucketName,
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: res}))
+	c := generated.Config{
+		Resolvers: res,
+	}
+
+	// setup directives
+	c.Directives.Auth = directive.Auth
+	c.Directives.HasRole = directive.HasRole
+
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(c))
 
 	router.Handle("/", playground.Handler("GraphQL Playground", "/query"))
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
-	router.With(custom_middleware.AuthMiddleware(cfg.JwtSecret)).Handle("/query", srv)
+	router.With(custom_middleware.UserLoaderMiddleware(cfg.JwtSecret)).Handle("/query", srv)
 
 	return &Server{
 		Router: router,

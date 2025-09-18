@@ -1,0 +1,8 @@
+directive @auth on FIELD_DEFINITION
+
+directive @hasRole(role: Role!) on FIELD_DEFINITION
+
+enum Role {
+  admin
+  user
+}

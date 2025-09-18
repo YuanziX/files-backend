@@ -41,6 +41,8 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
+	Auth    func(ctx context.Context, obj any, next graphql.Resolver) (res any, err error)
+	HasRole func(ctx context.Context, obj any, next graphql.Resolver, role model.Role) (res any, err error)
 }
 
 type ComplexityRoot struct {
@@ -451,6 +453,15 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
+	{Name: "../schema/directives.graphqls", Input: `directive @auth on FIELD_DEFINITION
+
+directive @hasRole(role: Role!) on FIELD_DEFINITION
+
+enum Role {
+  admin
+  user
+}
+`, BuiltIn: false},
 	{Name: "../schema/files.graphqls", Input: `# A custom scalar for handling timestamps.
 scalar Time
 
@@ -538,7 +549,7 @@ extend type Mutation {
 }
 
 extend type Query {
-  me: User!
+  me: User! @auth
 }
 `, BuiltIn: false},
 }

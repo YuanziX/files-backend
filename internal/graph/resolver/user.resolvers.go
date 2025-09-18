@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/YuanziX/files-backend/internal/auth"
@@ -29,7 +28,6 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 		return nil, fmt.Errorf("user with this email already exists")
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		log.Printf("Error checking existing user: %v", err)
 		return nil, fmt.Errorf("failed to check existing user: %w", err)
 	}
 
