@@ -12,12 +12,20 @@ import (
 
 type Querier interface {
 	CreateFileReference(ctx context.Context, arg CreateFileReferenceParams) (File, error)
+	CreateFolder(ctx context.Context, arg CreateFolderParams) (Folder, error)
 	CreatePhysicalFile(ctx context.Context, arg CreatePhysicalFileParams) (PhysicalFile, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DecrementPhysicalFileReferenceCount(ctx context.Context, id pgtype.UUID) error
+	DeleteFileReference(ctx context.Context, id pgtype.UUID) error
+	GetFileForDeletion(ctx context.Context, id pgtype.UUID) (GetFileForDeletionRow, error)
+	GetFolderByID(ctx context.Context, arg GetFolderByIDParams) (Folder, error)
 	GetPhysicalFileByHash(ctx context.Context, contentHash string) (PhysicalFile, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
-	ListFilesByOwner(ctx context.Context, ownerID pgtype.UUID) ([]File, error)
+	ListFilesByOwnerAndFolder(ctx context.Context, arg ListFilesByOwnerAndFolderParams) ([]ListFilesByOwnerAndFolderRow, error)
+	ListRootFilesByOwner(ctx context.Context, ownerID pgtype.UUID) ([]ListRootFilesByOwnerRow, error)
+	ListRootFoldersByOwner(ctx context.Context, ownerID pgtype.UUID) ([]Folder, error)
+	ListSubfoldersByParent(ctx context.Context, arg ListSubfoldersByParentParams) ([]Folder, error)
 }
 
 var _ Querier = (*Queries)(nil)

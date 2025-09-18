@@ -12,19 +12,25 @@ import (
 )
 
 const createFileReference = `-- name: CreateFileReference :one
-INSERT INTO files (owner_id, physical_file_id, filename)
-VALUES ($1, $2, $3)
-RETURNING id, owner_id, physical_file_id, folder_id, filename, tags, upload_date
+INSERT INTO files (owner_id, physical_file_id, folder_id, filename)
+VALUES ($1, $2, $3, $4)
+RETURNING id, owner_id, physical_file_id, folder_id, filename, upload_date
 `
 
 type CreateFileReferenceParams struct {
 	OwnerID        pgtype.UUID `json:"owner_id"`
 	PhysicalFileID pgtype.UUID `json:"physical_file_id"`
+	FolderID       pgtype.UUID `json:"folder_id"`
 	Filename       string      `json:"filename"`
 }
 
 func (q *Queries) CreateFileReference(ctx context.Context, arg CreateFileReferenceParams) (File, error) {
-	row := q.db.QueryRow(ctx, createFileReference, arg.OwnerID, arg.PhysicalFileID, arg.Filename)
+	row := q.db.QueryRow(ctx, createFileReference,
+		arg.OwnerID,
+		arg.PhysicalFileID,
+		arg.FolderID,
+		arg.Filename,
+	)
 	var i File
 	err := row.Scan(
 		&i.ID,
@@ -32,7 +38,6 @@ func (q *Queries) CreateFileReference(ctx context.Context, arg CreateFileReferen
 		&i.PhysicalFileID,
 		&i.FolderID,
 		&i.Filename,
-		&i.Tags,
 		&i.UploadDate,
 	)
 	return i, err
@@ -71,6 +76,40 @@ func (q *Queries) CreatePhysicalFile(ctx context.Context, arg CreatePhysicalFile
 	return i, err
 }
 
+const decrementPhysicalFileReferenceCount = `-- name: DecrementPhysicalFileReferenceCount :exec
+UPDATE physical_files SET reference_count = reference_count - 1 WHERE id = $1
+`
+
+func (q *Queries) DecrementPhysicalFileReferenceCount(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, decrementPhysicalFileReferenceCount, id)
+	return err
+}
+
+const deleteFileReference = `-- name: DeleteFileReference :exec
+DELETE FROM files WHERE id = $1
+`
+
+func (q *Queries) DeleteFileReference(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteFileReference, id)
+	return err
+}
+
+const getFileForDeletion = `-- name: GetFileForDeletion :one
+SELECT owner_id, physical_file_id FROM files WHERE id = $1
+`
+
+type GetFileForDeletionRow struct {
+	OwnerID        pgtype.UUID `json:"owner_id"`
+	PhysicalFileID pgtype.UUID `json:"physical_file_id"`
+}
+
+func (q *Queries) GetFileForDeletion(ctx context.Context, id pgtype.UUID) (GetFileForDeletionRow, error) {
+	row := q.db.QueryRow(ctx, getFileForDeletion, id)
+	var i GetFileForDeletionRow
+	err := row.Scan(&i.OwnerID, &i.PhysicalFileID)
+	return i, err
+}
+
 const getPhysicalFileByHash = `-- name: GetPhysicalFileByHash :one
 SELECT id, content_hash, mime_type, size_bytes, storage_path, reference_count, created_at FROM physical_files
 WHERE content_hash = $1 LIMIT 1
@@ -91,29 +130,88 @@ func (q *Queries) GetPhysicalFileByHash(ctx context.Context, contentHash string)
 	return i, err
 }
 
-const listFilesByOwner = `-- name: ListFilesByOwner :many
-SELECT id, owner_id, physical_file_id, folder_id, filename, tags, upload_date FROM files
-WHERE owner_id = $1
-ORDER BY upload_date DESC
+const listFilesByOwnerAndFolder = `-- name: ListFilesByOwnerAndFolder :many
+SELECT
+    f.id, f.filename, f.upload_date,
+    pf.mime_type, pf.size_bytes
+FROM files f
+JOIN physical_files pf ON f.physical_file_id = pf.id
+WHERE f.owner_id = $1 AND f.folder_id = $2
+ORDER BY f.filename
 `
 
-func (q *Queries) ListFilesByOwner(ctx context.Context, ownerID pgtype.UUID) ([]File, error) {
-	rows, err := q.db.Query(ctx, listFilesByOwner, ownerID)
+type ListFilesByOwnerAndFolderParams struct {
+	OwnerID  pgtype.UUID `json:"owner_id"`
+	FolderID pgtype.UUID `json:"folder_id"`
+}
+
+type ListFilesByOwnerAndFolderRow struct {
+	ID         pgtype.UUID        `json:"id"`
+	Filename   string             `json:"filename"`
+	UploadDate pgtype.Timestamptz `json:"upload_date"`
+	MimeType   string             `json:"mime_type"`
+	SizeBytes  int64              `json:"size_bytes"`
+}
+
+func (q *Queries) ListFilesByOwnerAndFolder(ctx context.Context, arg ListFilesByOwnerAndFolderParams) ([]ListFilesByOwnerAndFolderRow, error) {
+	rows, err := q.db.Query(ctx, listFilesByOwnerAndFolder, arg.OwnerID, arg.FolderID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []File
+	var items []ListFilesByOwnerAndFolderRow
 	for rows.Next() {
-		var i File
+		var i ListFilesByOwnerAndFolderRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.OwnerID,
-			&i.PhysicalFileID,
-			&i.FolderID,
 			&i.Filename,
-			&i.Tags,
 			&i.UploadDate,
+			&i.MimeType,
+			&i.SizeBytes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRootFilesByOwner = `-- name: ListRootFilesByOwner :many
+SELECT
+    f.id, f.filename, f.upload_date,
+    pf.mime_type, pf.size_bytes
+FROM files f
+JOIN physical_files pf ON f.physical_file_id = pf.id
+WHERE f.owner_id = $1 AND f.folder_id IS NULL
+ORDER BY f.filename
+`
+
+type ListRootFilesByOwnerRow struct {
+	ID         pgtype.UUID        `json:"id"`
+	Filename   string             `json:"filename"`
+	UploadDate pgtype.Timestamptz `json:"upload_date"`
+	MimeType   string             `json:"mime_type"`
+	SizeBytes  int64              `json:"size_bytes"`
+}
+
+func (q *Queries) ListRootFilesByOwner(ctx context.Context, ownerID pgtype.UUID) ([]ListRootFilesByOwnerRow, error) {
+	rows, err := q.db.Query(ctx, listRootFilesByOwner, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRootFilesByOwnerRow
+	for rows.Next() {
+		var i ListRootFilesByOwnerRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Filename,
+			&i.UploadDate,
+			&i.MimeType,
+			&i.SizeBytes,
 		); err != nil {
 			return nil, err
 		}

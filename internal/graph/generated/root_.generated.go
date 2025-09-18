@@ -60,9 +60,12 @@ type ComplexityRoot struct {
 	}
 
 	Folder struct {
-		CreatedAt func(childComplexity int) int
-		ID        func(childComplexity int) int
-		Name      func(childComplexity int) int
+		ChildrenFiles   func(childComplexity int) int
+		ChildrenFolders func(childComplexity int) int
+		CreatedAt       func(childComplexity int) int
+		ID              func(childComplexity int) int
+		Name            func(childComplexity int) int
+		Parent          func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -86,8 +89,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Me      func(childComplexity int) int
-		MyFiles func(childComplexity int) int
+		FolderDetails func(childComplexity int, folderID string) int
+		Me            func(childComplexity int) int
+		MyFiles       func(childComplexity int) int
+		MyFolders     func(childComplexity int) int
 	}
 
 	User struct {
@@ -167,6 +172,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.File.UploadDate(childComplexity), true
 
+	case "Folder.childrenFiles":
+		if e.complexity.Folder.ChildrenFiles == nil {
+			break
+		}
+
+		return e.complexity.Folder.ChildrenFiles(childComplexity), true
+
+	case "Folder.childrenFolders":
+		if e.complexity.Folder.ChildrenFolders == nil {
+			break
+		}
+
+		return e.complexity.Folder.ChildrenFolders(childComplexity), true
+
 	case "Folder.createdAt":
 		if e.complexity.Folder.CreatedAt == nil {
 			break
@@ -187,6 +206,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Folder.Name(childComplexity), true
+
+	case "Folder.parent":
+		if e.complexity.Folder.Parent == nil {
+			break
+		}
+
+		return e.complexity.Folder.Parent(childComplexity), true
 
 	case "Mutation.confirmUploads":
 		if e.complexity.Mutation.ConfirmUploads == nil {
@@ -295,6 +321,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PreUploadCheckResponse.NewFiles(childComplexity), true
 
+	case "Query.folderDetails":
+		if e.complexity.Query.FolderDetails == nil {
+			break
+		}
+
+		args, err := ec.field_Query_folderDetails_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FolderDetails(childComplexity, args["folderId"].(string)), true
+
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
 			break
@@ -308,6 +346,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyFiles(childComplexity), true
+
+	case "Query.myFolders":
+		if e.complexity.Query.MyFolders == nil {
+			break
+		}
+
+		return e.complexity.Query.MyFolders(childComplexity), true
 
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
@@ -462,14 +507,13 @@ enum Role {
   user
 }
 `, BuiltIn: false},
-	{Name: "../schema/files.graphqls", Input: `# A custom scalar for handling timestamps.
-scalar Time
+	{Name: "../schema/files.graphqls", Input: `scalar Time
 
 type File {
   id: ID!
   filename: String!
-  size: Int!
   mimeType: String!
+  size: Int!
   uploadDate: Time!
 }
 
@@ -477,24 +521,25 @@ type Folder {
   id: ID!
   name: String!
   createdAt: Time!
+  parent: Folder
+  childrenFolders: [Folder!]!
+  childrenFiles: [File!]!
 }
 
-# pre-signed URL for uploading file
 type PreSignedURL {
   filename: String!
   hash: String!
   uploadURL: String!
 }
 
-# tells client what's new and what's not
 type PreUploadCheckResponse {
   completedFiles: [File!]!
   newFiles: [PreSignedURL!]!
 }
 
-# filename with path and its hash
 input PreUploadFileInput {
   filename: String!
+  folderId: ID
   hash: String!
 }
 
@@ -503,20 +548,20 @@ input ConfirmUploadInput {
   hash: String!
   size: Int!
   mimeType: String!
+  folderId: ID
 }
 
 extend type Query {
-  myFiles: [File!]!
+  myFiles: [File!]! @auth
+  myFolders: [Folder!]! @auth
+  folderDetails(folderId: ID!): Folder @auth
 }
 
 extend type Mutation {
-  preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse!
-
-  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]!
-
-  createFolder(name: String!, parentId: ID): Folder!
-
-  deleteFile(fileId: ID!): Boolean!
+  preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse! @auth
+  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]! @auth
+  createFolder(name: String!, parentId: ID): Folder! @auth
+  deleteFile(fileId: ID!): Boolean! @auth
 }
 `, BuiltIn: false},
 	{Name: "../schema/user.graphqls", Input: `type User {

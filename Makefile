@@ -9,4 +9,4 @@ run:
 setup:
 	go mod tidy
 
-init: setup generate
+init: setup generate run

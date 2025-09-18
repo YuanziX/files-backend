@@ -7,12 +7,18 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/YuanziX/files-backend/internal/database/postgres"
 	"github.com/YuanziX/files-backend/internal/graph/generated"
 	"github.com/YuanziX/files-backend/internal/graph/model"
-	"github.com/YuanziX/files-backend/internal/utils"
+	"github.com/YuanziX/files-backend/internal/middleware"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -23,14 +29,14 @@ func (r *fileResolver) ID(ctx context.Context, obj *postgres.File) (string, erro
 	panic(fmt.Errorf("not implemented: ID - id"))
 }
 
-// Size is the resolver for the size field.
-func (r *fileResolver) Size(ctx context.Context, obj *postgres.File) (int32, error) {
-	panic(fmt.Errorf("not implemented: Size - size"))
-}
-
 // MimeType is the resolver for the mimeType field.
 func (r *fileResolver) MimeType(ctx context.Context, obj *postgres.File) (string, error) {
 	panic(fmt.Errorf("not implemented: MimeType - mimeType"))
+}
+
+// Size is the resolver for the size field.
+func (r *fileResolver) Size(ctx context.Context, obj *postgres.File) (int32, error) {
+	panic(fmt.Errorf("not implemented: Size - size"))
 }
 
 // UploadDate is the resolver for the uploadDate field.
@@ -48,52 +54,71 @@ func (r *folderResolver) CreatedAt(ctx context.Context, obj *postgres.Folder) (*
 	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
 }
 
+// Parent is the resolver for the parent field.
+func (r *folderResolver) Parent(ctx context.Context, obj *postgres.Folder) (*postgres.Folder, error) {
+	panic(fmt.Errorf("not implemented: Parent - parent"))
+}
+
+// ChildrenFolders is the resolver for the childrenFolders field.
+func (r *folderResolver) ChildrenFolders(ctx context.Context, obj *postgres.Folder) ([]*postgres.Folder, error) {
+	panic(fmt.Errorf("not implemented: ChildrenFolders - childrenFolders"))
+}
+
+// ChildrenFiles is the resolver for the childrenFiles field.
+func (r *folderResolver) ChildrenFiles(ctx context.Context, obj *postgres.Folder) ([]*postgres.File, error) {
+	panic(fmt.Errorf("not implemented: ChildrenFiles - childrenFiles"))
+}
+
 // PreUploadCheck is the resolver for the preUploadCheck field.
 func (r *mutationResolver) PreUploadCheck(ctx context.Context, files []*model.PreUploadFileInput) (*model.PreUploadCheckResponse, error) {
-	userIDStr, ok := utils.GetUserID(ctx)
+	userIDStr, ok := ctx.Value(middleware.UserIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("access denied")
 	}
-	ownerID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID in token")
-	}
+	ownerID, _ := uuid.Parse(userIDStr)
 
 	var completedFiles []*postgres.File
 	var newFiles []*model.PreSignedURL
 
 	for _, fileInput := range files {
-		// 1. Check if the hash already exists in our database.
 		physicalFile, err := r.DB.GetPhysicalFileByHash(ctx, fileInput.Hash)
 
 		if err == nil {
-			// 2a. DUPLICATE FOUND: The file content already exists.
-			// We just create a new reference to it for the current user.
+			var pgFolderID pgtype.UUID
+			if fileInput.FolderID != nil {
+				parsedFolderID, err := uuid.Parse(*fileInput.FolderID)
+				if err != nil {
+					return nil, fmt.Errorf("invalid folder ID: %w", err)
+				}
+				pgFolderID = pgtype.UUID{Bytes: parsedFolderID, Valid: true}
+			}
+
 			params := postgres.CreateFileReferenceParams{
 				OwnerID:        pgtype.UUID{Bytes: ownerID, Valid: true},
 				PhysicalFileID: physicalFile.ID,
+				FolderID:       pgFolderID,
 				Filename:       fileInput.Filename,
 			}
-			newFileRef, err := r.DB.CreateFileReference(ctx, params)
-			if err != nil {
-				return nil, fmt.Errorf("could not create file reference for %s: %w", fileInput.Filename, err)
-			}
-			completedFiles = append(completedFiles, &newFileRef)
+			newFileRef, _ := r.DB.CreateFileReference(ctx, params)
 
+			completedFiles = append(completedFiles, &postgres.File{
+				ID:         newFileRef.ID,
+				Filename:   newFileRef.Filename,
+				UploadDate: newFileRef.UploadDate,
+			})
 		} else {
-			// 2b. NEW FILE: The content does not exist yet.
-			// We generate a pre-signed URL for the client to upload the file to MinIO.
-			objectName := fileInput.Hash // Store the file in MinIO using its hash as the key.
-			expiry := 15 * time.Minute   // The link will be valid for 15 minutes.
+			// New file
+			objectName := fileInput.Hash
+			expiry := 15 * time.Minute
 
 			presignedURL, err := r.S3PresignClient.PresignPutObject(ctx, &s3.PutObjectInput{
-				Bucket: &r.S3BucketName,
+				Bucket: &r.Cfg.S3BucketName,
 				Key:    &objectName,
 			}, s3.WithPresignExpires(expiry))
+
 			if err != nil {
 				return nil, fmt.Errorf("could not generate pre-signed URL for %s: %w", fileInput.Filename, err)
 			}
-
 			newFiles = append(newFiles, &model.PreSignedURL{
 				Filename:  fileInput.Filename,
 				Hash:      fileInput.Hash,
@@ -110,7 +135,114 @@ func (r *mutationResolver) PreUploadCheck(ctx context.Context, files []*model.Pr
 
 // ConfirmUploads is the resolver for the confirmUploads field.
 func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.ConfirmUploadInput) ([]*postgres.File, error) {
-	panic(fmt.Errorf("not implemented: ConfirmUploads - confirmUploads"))
+	userIDStr, ok := ctx.Value(middleware.UserIDKey).(string)
+	if !ok {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	ownerID, _ := uuid.Parse(userIDStr)
+	var successfullyConfirmedFiles []*postgres.File
+
+	for _, upload := range uploads {
+		tx, err := r.DBPool.Begin(ctx)
+		if err != nil {
+			return nil, err
+		}
+		qtx := r.DB.WithTx(&tx)
+
+		getObjectInput := &s3.GetObjectInput{
+			Bucket: &r.Cfg.S3BucketName,
+			Key:    &upload.Hash,
+			Range:  aws.String("bytes=0-511"),
+		}
+
+		object, err := r.S3Client.GetObject(ctx, getObjectInput)
+		if err != nil {
+			log.Printf("Verification failed for hash %s: could not get object from MinIO: %v", upload.Hash, err)
+			continue
+		}
+		defer object.Body.Close()
+
+		magicBytes, err := io.ReadAll(object.Body)
+		if err != nil {
+			log.Printf("Verification failed for hash %s: could not read magic bytes: %v", upload.Hash, err)
+			continue
+		}
+
+		verifiedMimeType := http.DetectContentType(magicBytes)
+
+		if verifiedMimeType != upload.MimeType {
+			log.Printf("MIME type mismatch for hash %s: client said %s, but content is %s",
+				upload.Hash, upload.MimeType, verifiedMimeType)
+
+			continue
+		}
+
+		// Verify size and mime type
+		contentRange := *object.ContentRange
+		parts := strings.Split(contentRange, "/")
+		if len(parts) < 2 {
+			log.Printf("Verification failed for hash %s: invalid Content-Range header", upload.Hash)
+			continue
+		}
+		fullSizeStr := parts[1]
+		verifiedSize, err := strconv.ParseInt(fullSizeStr, 10, 64)
+		if err != nil {
+			log.Printf("Verification failed for hash %s: could not parse Content-Range header: %v", upload.Hash, err)
+			continue
+		}
+
+		if verifiedSize != int64(upload.Size) {
+			log.Printf("Verification mismatch for hash %s: client said %d/%s, server found %d/%s",
+				upload.Hash, upload.Size, upload.MimeType, verifiedSize, verifiedMimeType)
+			continue
+		}
+
+		physFileParams := postgres.CreatePhysicalFileParams{
+			ContentHash: upload.Hash,
+			MimeType:    upload.MimeType,
+			SizeBytes:   int64(upload.Size),
+			StoragePath: fmt.Sprintf("%s/%s", r.Cfg.S3BucketName, upload.Hash),
+		}
+		physicalFile, err := qtx.CreatePhysicalFile(ctx, physFileParams)
+		if err != nil {
+			tx.Rollback(ctx)
+			continue
+		}
+
+		var pgFolderID pgtype.UUID
+		if upload.FolderID != nil {
+			parsedFolderID, err := uuid.Parse(*upload.FolderID)
+			if err != nil {
+				continue
+			}
+			pgFolderID = pgtype.UUID{Bytes: parsedFolderID, Valid: true}
+		}
+
+		fileRefParams := postgres.CreateFileReferenceParams{
+			OwnerID:        pgtype.UUID{Bytes: ownerID, Valid: true},
+			PhysicalFileID: physicalFile.ID,
+			FolderID:       pgFolderID,
+			Filename:       upload.Filename,
+		}
+		newFile, err := qtx.CreateFileReference(ctx, fileRefParams)
+		if err != nil {
+			tx.Rollback(ctx)
+			continue
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+
+		successfullyConfirmedFiles = append(successfullyConfirmedFiles, &postgres.File{
+			ID:         newFile.ID,
+			Filename:   newFile.Filename,
+			UploadDate: newFile.UploadDate,
+		})
+	}
+
+	return successfullyConfirmedFiles, nil
 }
 
 // CreateFolder is the resolver for the createFolder field.
@@ -126,6 +258,16 @@ func (r *mutationResolver) DeleteFile(ctx context.Context, fileID string) (bool,
 // MyFiles is the resolver for the myFiles field.
 func (r *queryResolver) MyFiles(ctx context.Context) ([]*postgres.File, error) {
 	panic(fmt.Errorf("not implemented: MyFiles - myFiles"))
+}
+
+// MyFolders is the resolver for the myFolders field.
+func (r *queryResolver) MyFolders(ctx context.Context) ([]*postgres.Folder, error) {
+	panic(fmt.Errorf("not implemented: MyFolders - myFolders"))
+}
+
+// FolderDetails is the resolver for the folderDetails field.
+func (r *queryResolver) FolderDetails(ctx context.Context, folderID string) (*postgres.Folder, error) {
+	panic(fmt.Errorf("not implemented: FolderDetails - folderDetails"))
 }
 
 // File returns generated.FileResolver implementation.

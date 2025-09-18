@@ -17,9 +17,8 @@ func main() {
 
 	// create db querier
 	dbQuerier := postgres.New(dbPool)
-
 	// create server
-	srv := server.New(dbQuerier, cfg)
+	srv := server.New(database.Queries{dbQuerier}, dbPool, cfg)
 
 	// start server
 	srv.Start(cfg.Port)

@@ -1,11 +1,10 @@
-# A custom scalar for handling timestamps.
 scalar Time
 
 type File {
   id: ID!
   filename: String!
-  size: Int!
   mimeType: String!
+  size: Int!
   uploadDate: Time!
 }
 
@@ -13,24 +12,25 @@ type Folder {
   id: ID!
   name: String!
   createdAt: Time!
+  parent: Folder
+  childrenFolders: [Folder!]!
+  childrenFiles: [File!]!
 }
 
-# pre-signed URL for uploading file
 type PreSignedURL {
   filename: String!
   hash: String!
   uploadURL: String!
 }
 
-# tells client what's new and what's not
 type PreUploadCheckResponse {
   completedFiles: [File!]!
   newFiles: [PreSignedURL!]!
 }
 
-# filename with path and its hash
 input PreUploadFileInput {
   filename: String!
+  folderId: ID
   hash: String!
 }
 
@@ -39,18 +39,18 @@ input ConfirmUploadInput {
   hash: String!
   size: Int!
   mimeType: String!
+  folderId: ID
 }
 
 extend type Query {
-  myFiles: [File!]!
+  myFiles: [File!]! @auth
+  myFolders: [Folder!]! @auth
+  folderDetails(folderId: ID!): Folder @auth
 }
 
 extend type Mutation {
-  preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse!
-
-  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]!
-
-  createFolder(name: String!, parentId: ID): Folder!
-
-  deleteFile(fileId: ID!): Boolean!
+  preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse! @auth
+  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]! @auth
+  createFolder(name: String!, parentId: ID): Folder! @auth
+  deleteFile(fileId: ID!): Boolean! @auth
 }

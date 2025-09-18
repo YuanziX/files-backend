@@ -28,34 +28,40 @@ CREATE TABLE folders (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (owner_id, parent_id, name)
 );
+CREATE INDEX idx_folders_owner ON folders(owner_id);
 
 CREATE TABLE files (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     physical_file_id UUID NOT NULL REFERENCES physical_files(id) ON DELETE RESTRICT,
-    folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
+    folder_id UUID REFERENCES folders(id) ON DELETE CASCADE,
     filename VARCHAR(255) NOT NULL,
-    tags TEXT[],
     upload_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (owner_id, folder_id, filename)
 );
+CREATE INDEX idx_files_owner_folder ON files(owner_id, folder_id);
+CREATE INDEX idx_files_physical_file ON files(physical_file_id);
 
+CREATE TYPE share_type AS ENUM ('user', 'public');
 CREATE TABLE shares (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     file_id UUID REFERENCES files(id) ON DELETE CASCADE,
     folder_id UUID REFERENCES folders(id) ON DELETE CASCADE,
+    share_type share_type NOT NULL,
     owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     shared_with_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    share_type VARCHAR(50) NOT NULL,
     public_token VARCHAR(255) UNIQUE,
     download_count INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT chk_share_target CHECK ((file_id IS NOT NULL AND folder_id IS NULL) OR (file_id IS NULL AND folder_id IS NOT NULL))
 );
+CREATE INDEX idx_shares_shared_with ON shares(shared_with_user_id);
+CREATE INDEX idx_shares_token ON shares(public_token);
 
 -- +goose Down
-DROP TABLE IF EXISTS shares;
-DROP TABLE IF EXISTS files;
-DROP TABLE IF EXISTS folders;
-DROP TABLE IF EXISTS physical_files;
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS shares CASCADE;
+DROP TABLE IF EXISTS files CASCADE;
+DROP TABLE IF EXISTS folders CASCADE;
+DROP TABLE IF EXISTS physical_files CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TYPE IF EXISTS share_type;

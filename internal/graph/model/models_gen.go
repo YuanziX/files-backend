@@ -17,10 +17,11 @@ type AuthResponse struct {
 }
 
 type ConfirmUploadInput struct {
-	Filename string `json:"filename"`
-	Hash     string `json:"hash"`
-	Size     int32  `json:"size"`
-	MimeType string `json:"mimeType"`
+	Filename string  `json:"filename"`
+	Hash     string  `json:"hash"`
+	Size     int32   `json:"size"`
+	MimeType string  `json:"mimeType"`
+	FolderID *string `json:"folderId,omitempty"`
 }
 
 type LoginUser struct {
@@ -43,8 +44,9 @@ type PreUploadCheckResponse struct {
 }
 
 type PreUploadFileInput struct {
-	Filename string `json:"filename"`
-	Hash     string `json:"hash"`
+	Filename string  `json:"filename"`
+	FolderID *string `json:"folderId,omitempty"`
+	Hash     string  `json:"hash"`
 }
 
 type Query struct {

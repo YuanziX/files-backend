@@ -8,9 +8,10 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/YuanziX/files-backend/internal/config"
-	"github.com/YuanziX/files-backend/internal/database/postgres"
+	"github.com/YuanziX/files-backend/internal/database"
 	"github.com/YuanziX/files-backend/internal/graph/directive"
 	"github.com/YuanziX/files-backend/internal/graph/generated"
 	"github.com/YuanziX/files-backend/internal/graph/resolver"
@@ -22,7 +23,7 @@ type Server struct {
 	Router *chi.Mux
 }
 
-func New(db postgres.Querier, cfg *config.Config) *Server {
+func New(db database.Queries, dbPool *pgxpool.Pool, cfg *config.Config) *Server {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Logger)
@@ -32,6 +33,7 @@ func New(db postgres.Querier, cfg *config.Config) *Server {
 
 	res := &resolver.Resolver{
 		DB:              db,
+		DBPool:          dbPool,
 		Cfg:             cfg,
 		S3Client:        s3Client,
 		S3PresignClient: s3PresignClient,

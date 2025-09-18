@@ -5,8 +5,53 @@
 package postgres
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type ShareType string
+
+const (
+	ShareTypeUser   ShareType = "user"
+	ShareTypePublic ShareType = "public"
+)
+
+func (e *ShareType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ShareType(s)
+	case string:
+		*e = ShareType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ShareType: %T", src)
+	}
+	return nil
+}
+
+type NullShareType struct {
+	ShareType ShareType `json:"share_type"`
+	Valid     bool      `json:"valid"` // Valid is true if ShareType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullShareType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ShareType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ShareType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullShareType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ShareType), nil
+}
 
 type File struct {
 	ID             pgtype.UUID        `json:"id"`
@@ -14,7 +59,6 @@ type File struct {
 	PhysicalFileID pgtype.UUID        `json:"physical_file_id"`
 	FolderID       pgtype.UUID        `json:"folder_id"`
 	Filename       string             `json:"filename"`
-	Tags           []string           `json:"tags"`
 	UploadDate     pgtype.Timestamptz `json:"upload_date"`
 }
 
@@ -40,9 +84,9 @@ type Share struct {
 	ID               pgtype.UUID        `json:"id"`
 	FileID           pgtype.UUID        `json:"file_id"`
 	FolderID         pgtype.UUID        `json:"folder_id"`
+	ShareType        ShareType          `json:"share_type"`
 	OwnerID          pgtype.UUID        `json:"owner_id"`
 	SharedWithUserID pgtype.UUID        `json:"shared_with_user_id"`
-	ShareType        string             `json:"share_type"`
 	PublicToken      pgtype.Text        `json:"public_token"`
 	DownloadCount    int32              `json:"download_count"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
