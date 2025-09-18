@@ -1,0 +1,30 @@
+schema:
+  - internal/graph/schema/*.graphqls
+
+exec:
+  layout: follow-schema
+  dir: internal/graph/generated
+  package: generated
+
+model:
+  filename: internal/graph/model/models_gen.go
+  package: model
+
+resolver:
+  layout: follow-schema
+  dir: internal/graph/resolver
+  package: resolver
+
+autobind:
+  - "github.com/YuanziX/files-backend/internal/database/postgres"
+
+models:
+  Time:
+    model:
+      - github.com/99designs/gqlgen/graphql.Time
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.ID
+  Int:
+    model:
+      - github.com/99designs/gqlgen/graphql.Int32

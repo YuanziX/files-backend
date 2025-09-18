@@ -1,0 +1,56 @@
+# A custom scalar for handling timestamps.
+scalar Time
+
+type File {
+  id: ID!
+  filename: String!
+  size: Int!
+  mimeType: String!
+  uploadDate: Time!
+}
+
+type Folder {
+  id: ID!
+  name: String!
+  createdAt: Time!
+}
+
+# pre-signed URL for uploading file
+type PreSignedURL {
+  filename: String!
+  hash: String!
+  uploadURL: String!
+}
+
+# tells client what's new and what's not
+type PreUploadCheckResponse {
+  completedFiles: [File!]!
+  newFiles: [PreSignedURL!]!
+}
+
+# filename with path and its hash
+input PreUploadFileInput {
+  filename: String!
+  hash: String!
+}
+
+input ConfirmUploadInput {
+  filename: String!
+  hash: String!
+  size: Int!
+  mimeType: String!
+}
+
+extend type Query {
+  myFiles: [File!]!
+}
+
+extend type Mutation {
+  preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse!
+
+  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]!
+
+  createFolder(name: String!, parentId: ID): Folder!
+
+  deleteFile(fileId: ID!): Boolean!
+}
