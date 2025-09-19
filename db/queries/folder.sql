@@ -59,3 +59,10 @@ SELECT EXISTS (
         (s.share_type = 'user' AND s.shared_with_user_id = $3)
       )
 );
+
+-- name: CheckFolderOwnership :one
+SELECT EXISTS (
+    SELECT 1
+    FROM folders
+    WHERE id = $1 AND owner_id = $2
+);

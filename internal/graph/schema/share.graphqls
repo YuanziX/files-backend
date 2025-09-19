@@ -1,0 +1,27 @@
+type Share {
+  id: ID!
+  owner: User!
+  sharedWith: User
+  shareType: String!
+  publicToken: String
+  downloadCount: Int!
+  createdAt: String!
+}
+
+extend type Query {
+  getFileShares(fileId: ID!): [Share!]! @auth
+  getFolderShares(folderId: ID!): [Share!]! @auth
+  getMyShares: [Share!]! @auth
+}
+
+extend type Mutation {
+  shareFileWithUser(fileId: ID!, userId: ID!): ID! @auth
+  unshareFileWithUser(fileId: ID!, userId: ID!): Boolean! @auth
+
+  shareFolderWithUser(folderId: ID!, userId: ID!): ID! @auth
+  unshareFolderWithUser(folderId: ID!, userId: ID!): Boolean! @auth
+
+  shareFilePublic(fileId: ID!): String! @auth
+  shareFolderPublic(folderId: ID!): String! @auth
+  revokePubliclyShared(publicToken: ID!): Boolean! @auth
+}

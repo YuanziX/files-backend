@@ -39,6 +39,26 @@ func (q *Queries) CanAccessFolder(ctx context.Context, arg CanAccessFolderParams
 	return exists, err
 }
 
+const checkFolderOwnership = `-- name: CheckFolderOwnership :one
+SELECT EXISTS (
+    SELECT 1
+    FROM folders
+    WHERE id = $1 AND owner_id = $2
+)
+`
+
+type CheckFolderOwnershipParams struct {
+	ID      pgtype.UUID `json:"id"`
+	OwnerID pgtype.UUID `json:"owner_id"`
+}
+
+func (q *Queries) CheckFolderOwnership(ctx context.Context, arg CheckFolderOwnershipParams) (bool, error) {
+	row := q.db.QueryRow(ctx, checkFolderOwnership, arg.ID, arg.OwnerID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createFolder = `-- name: CreateFolder :one
 INSERT INTO folders (id, owner_id, parent_id, name, path)
 VALUES ($1, $2, $3, $4, $5)

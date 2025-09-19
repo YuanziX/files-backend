@@ -39,6 +39,24 @@ func (q *Queries) CanAccessFile(ctx context.Context, arg CanAccessFileParams) (b
 	return exists, err
 }
 
+const checkFileOwnership = `-- name: CheckFileOwnership :one
+SELECT EXISTS (
+    SELECT 1 FROM files WHERE id = $1 AND owner_id = $2
+)
+`
+
+type CheckFileOwnershipParams struct {
+	ID      pgtype.UUID `json:"id"`
+	OwnerID pgtype.UUID `json:"owner_id"`
+}
+
+func (q *Queries) CheckFileOwnership(ctx context.Context, arg CheckFileOwnershipParams) (bool, error) {
+	row := q.db.QueryRow(ctx, checkFileOwnership, arg.ID, arg.OwnerID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createFileReference = `-- name: CreateFileReference :one
 INSERT INTO files (owner_id, physical_file_id, folder_id, filename)
 VALUES ($1, $2, $3, $4)

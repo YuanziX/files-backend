@@ -36,6 +36,7 @@ type ResolverRoot interface {
 	Folder() FolderResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Share() ShareResolver
 	User() UserResolver
 }
 
@@ -74,14 +75,21 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		ConfirmUploads func(childComplexity int, uploads []*model.ConfirmUploadInput) int
-		CreateFolder   func(childComplexity int, name string, parentID *string) int
-		DeleteFile     func(childComplexity int, fileID string) int
-		DeleteFolder   func(childComplexity int, folderID string) int
-		GetDownloadURL func(childComplexity int, fileID string, publicToken *string) int
-		Login          func(childComplexity int, input model.LoginUser) int
-		PreUploadCheck func(childComplexity int, files []*model.PreUploadFileInput) int
-		RegisterUser   func(childComplexity int, input model.RegisterUser) int
+		ConfirmUploads        func(childComplexity int, uploads []*model.ConfirmUploadInput) int
+		CreateFolder          func(childComplexity int, name string, parentID *string) int
+		DeleteFile            func(childComplexity int, fileID string) int
+		DeleteFolder          func(childComplexity int, folderID string) int
+		GetDownloadURL        func(childComplexity int, fileID string, publicToken *string) int
+		Login                 func(childComplexity int, input model.LoginUser) int
+		PreUploadCheck        func(childComplexity int, files []*model.PreUploadFileInput) int
+		RegisterUser          func(childComplexity int, input model.RegisterUser) int
+		RevokePubliclyShared  func(childComplexity int, publicToken string) int
+		ShareFilePublic       func(childComplexity int, fileID string) int
+		ShareFileWithUser     func(childComplexity int, fileID string, userID string) int
+		ShareFolderPublic     func(childComplexity int, folderID string) int
+		ShareFolderWithUser   func(childComplexity int, folderID string, userID string) int
+		UnshareFileWithUser   func(childComplexity int, fileID string, userID string) int
+		UnshareFolderWithUser func(childComplexity int, folderID string, userID string) int
 	}
 
 	PreSignedURL struct {
@@ -97,9 +105,22 @@ type ComplexityRoot struct {
 
 	Query struct {
 		FolderDetails      func(childComplexity int, folderID string, publicToken *string) int
+		GetFileShares      func(childComplexity int, fileID string) int
 		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string) int
+		GetFolderShares    func(childComplexity int, folderID string) int
 		GetFoldersInFolder func(childComplexity int, folderID *string, publicToken *string) int
+		GetMyShares        func(childComplexity int) int
 		Me                 func(childComplexity int) int
+	}
+
+	Share struct {
+		CreatedAt     func(childComplexity int) int
+		DownloadCount func(childComplexity int) int
+		ID            func(childComplexity int) int
+		Owner         func(childComplexity int) int
+		PublicToken   func(childComplexity int) int
+		ShareType     func(childComplexity int) int
+		SharedWith    func(childComplexity int) int
 	}
 
 	User struct {
@@ -338,6 +359,90 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.RegisterUser(childComplexity, args["input"].(model.RegisterUser)), true
 
+	case "Mutation.revokePubliclyShared":
+		if e.complexity.Mutation.RevokePubliclyShared == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_revokePubliclyShared_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RevokePubliclyShared(childComplexity, args["publicToken"].(string)), true
+
+	case "Mutation.shareFilePublic":
+		if e.complexity.Mutation.ShareFilePublic == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_shareFilePublic_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ShareFilePublic(childComplexity, args["fileId"].(string)), true
+
+	case "Mutation.shareFileWithUser":
+		if e.complexity.Mutation.ShareFileWithUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_shareFileWithUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ShareFileWithUser(childComplexity, args["fileId"].(string), args["userId"].(string)), true
+
+	case "Mutation.shareFolderPublic":
+		if e.complexity.Mutation.ShareFolderPublic == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_shareFolderPublic_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ShareFolderPublic(childComplexity, args["folderId"].(string)), true
+
+	case "Mutation.shareFolderWithUser":
+		if e.complexity.Mutation.ShareFolderWithUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_shareFolderWithUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ShareFolderWithUser(childComplexity, args["folderId"].(string), args["userId"].(string)), true
+
+	case "Mutation.unshareFileWithUser":
+		if e.complexity.Mutation.UnshareFileWithUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unshareFileWithUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UnshareFileWithUser(childComplexity, args["fileId"].(string), args["userId"].(string)), true
+
+	case "Mutation.unshareFolderWithUser":
+		if e.complexity.Mutation.UnshareFolderWithUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unshareFolderWithUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UnshareFolderWithUser(childComplexity, args["folderId"].(string), args["userId"].(string)), true
+
 	case "PreSignedURL.filename":
 		if e.complexity.PreSignedURL.Filename == nil {
 			break
@@ -385,6 +490,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.FolderDetails(childComplexity, args["folderId"].(string), args["publicToken"].(*string)), true
 
+	case "Query.getFileShares":
+		if e.complexity.Query.GetFileShares == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFileShares_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetFileShares(childComplexity, args["fileId"].(string)), true
+
 	case "Query.getFilesInFolder":
 		if e.complexity.Query.GetFilesInFolder == nil {
 			break
@@ -396,6 +513,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.GetFilesInFolder(childComplexity, args["folderId"].(*string), args["publicToken"].(*string)), true
+
+	case "Query.getFolderShares":
+		if e.complexity.Query.GetFolderShares == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFolderShares_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetFolderShares(childComplexity, args["folderId"].(string)), true
 
 	case "Query.getFoldersInFolder":
 		if e.complexity.Query.GetFoldersInFolder == nil {
@@ -409,12 +538,68 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.GetFoldersInFolder(childComplexity, args["folderId"].(*string), args["publicToken"].(*string)), true
 
+	case "Query.getMyShares":
+		if e.complexity.Query.GetMyShares == nil {
+			break
+		}
+
+		return e.complexity.Query.GetMyShares(childComplexity), true
+
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
 			break
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
+
+	case "Share.createdAt":
+		if e.complexity.Share.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Share.CreatedAt(childComplexity), true
+
+	case "Share.downloadCount":
+		if e.complexity.Share.DownloadCount == nil {
+			break
+		}
+
+		return e.complexity.Share.DownloadCount(childComplexity), true
+
+	case "Share.id":
+		if e.complexity.Share.ID == nil {
+			break
+		}
+
+		return e.complexity.Share.ID(childComplexity), true
+
+	case "Share.owner":
+		if e.complexity.Share.Owner == nil {
+			break
+		}
+
+		return e.complexity.Share.Owner(childComplexity), true
+
+	case "Share.publicToken":
+		if e.complexity.Share.PublicToken == nil {
+			break
+		}
+
+		return e.complexity.Share.PublicToken(childComplexity), true
+
+	case "Share.shareType":
+		if e.complexity.Share.ShareType == nil {
+			break
+		}
+
+		return e.complexity.Share.ShareType(childComplexity), true
+
+	case "Share.sharedWith":
+		if e.complexity.Share.SharedWith == nil {
+			break
+		}
+
+		return e.complexity.Share.SharedWith(childComplexity), true
 
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
@@ -634,6 +819,34 @@ extend type Mutation {
 
   preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse! @auth
   confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]! @auth
+}
+`, BuiltIn: false},
+	{Name: "../schema/share.graphqls", Input: `type Share {
+  id: ID!
+  owner: User!
+  sharedWith: User
+  shareType: String!
+  publicToken: String
+  downloadCount: Int!
+  createdAt: String!
+}
+
+extend type Query {
+  getFileShares(fileId: ID!): [Share!]! @auth
+  getFolderShares(folderId: ID!): [Share!]! @auth
+  getMyShares: [Share!]! @auth
+}
+
+extend type Mutation {
+  shareFileWithUser(fileId: ID!, userId: ID!): ID! @auth
+  unshareFileWithUser(fileId: ID!, userId: ID!): Boolean! @auth
+
+  shareFolderWithUser(folderId: ID!, userId: ID!): ID! @auth
+  unshareFolderWithUser(folderId: ID!, userId: ID!): Boolean! @auth
+
+  shareFilePublic(fileId: ID!): String! @auth
+  shareFolderPublic(folderId: ID!): String! @auth
+  revokePubliclyShared(publicToken: ID!): Boolean! @auth
 }
 `, BuiltIn: false},
 	{Name: "../schema/user.graphqls", Input: `type User {

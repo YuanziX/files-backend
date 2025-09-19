@@ -61,3 +61,8 @@ UPDATE physical_files SET reference_count = reference_count - 1 WHERE id = $1;
 
 -- name: DeleteFileReference :exec
 DELETE FROM files WHERE id = $1;
+
+-- name: CheckFileOwnership :one
+SELECT EXISTS (
+    SELECT 1 FROM files WHERE id = $1 AND owner_id = $2
+);

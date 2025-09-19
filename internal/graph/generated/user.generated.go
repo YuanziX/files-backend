@@ -545,4 +545,11 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbac
 	return ec._User(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐUser(ctx context.Context, sel ast.SelectionSet, v *postgres.User) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._User(ctx, sel, v)
+}
+
 // endregion ***************************** type.gotpl *****************************
