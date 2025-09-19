@@ -1,4 +1,6 @@
 -- +goose Up
+CREATE EXTENSION IF NOT EXISTS ltree;
+
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -25,10 +27,12 @@ CREATE TABLE folders (
     owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     parent_id UUID REFERENCES folders(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
+    path LTREE NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (owner_id, parent_id, name)
 );
 CREATE INDEX idx_folders_owner ON folders(owner_id);
+CREATE INDEX idx_folders_path ON folders USING GIST (path);
 
 CREATE TABLE files (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -43,6 +47,7 @@ CREATE INDEX idx_files_owner_folder ON files(owner_id, folder_id);
 CREATE INDEX idx_files_physical_file ON files(physical_file_id);
 
 CREATE TYPE share_type AS ENUM ('user', 'public');
+
 CREATE TABLE shares (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     file_id UUID REFERENCES files(id) ON DELETE CASCADE,
@@ -53,7 +58,10 @@ CREATE TABLE shares (
     public_token VARCHAR(255) UNIQUE,
     download_count INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_share_target CHECK ((file_id IS NOT NULL AND folder_id IS NULL) OR (file_id IS NULL AND folder_id IS NOT NULL))
+    CONSTRAINT chk_share_target CHECK (
+        (file_id IS NOT NULL AND folder_id IS NULL) OR
+        (file_id IS NULL AND folder_id IS NOT NULL)
+    )
 );
 CREATE INDEX idx_shares_shared_with ON shares(shared_with_user_id);
 CREATE INDEX idx_shares_token ON shares(public_token);
@@ -65,3 +73,4 @@ DROP TABLE IF EXISTS folders CASCADE;
 DROP TABLE IF EXISTS physical_files CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TYPE IF EXISTS share_type;
+DROP EXTENSION IF EXISTS ltree;

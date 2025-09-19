@@ -15,14 +15,16 @@ resolver:
   dir: internal/graph/resolver
   package: resolver
 
-autobind:
-  - "github.com/YuanziX/files-backend/internal/database/postgres"
+# autobind:
+#   - "github.com/YuanziX/files-backend/internal/database/postgres"
 
 models:
   User:
     model: "github.com/YuanziX/files-backend/internal/database/postgres.User"
   Share:
     model: "github.com/YuanziX/files-backend/internal/database/postgres.Share"
+  Folder:
+    model: "github.com/YuanziX/files-backend/internal/database/postgres.Folder"
 
   Time:
     model:

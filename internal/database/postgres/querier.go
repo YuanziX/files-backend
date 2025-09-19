@@ -11,14 +11,22 @@ import (
 )
 
 type Querier interface {
+	CanAccessFile(ctx context.Context, arg CanAccessFileParams) (bool, error)
+	CanAccessFolder(ctx context.Context, arg CanAccessFolderParams) (bool, error)
 	CreateFileReference(ctx context.Context, arg CreateFileReferenceParams) (File, error)
 	CreateFolder(ctx context.Context, arg CreateFolderParams) (Folder, error)
 	CreatePhysicalFile(ctx context.Context, arg CreatePhysicalFileParams) (PhysicalFile, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DecrementPhysicalFileReferenceCount(ctx context.Context, id pgtype.UUID) error
+	DecrementPhysicalFileRefsInFolder(ctx context.Context, id pgtype.UUID) error
 	DeleteFileReference(ctx context.Context, id pgtype.UUID) error
+	DeleteFilesInFolder(ctx context.Context, id pgtype.UUID) error
+	DeleteFolder(ctx context.Context, arg DeleteFolderParams) error
+	DeleteFoldersRecursively(ctx context.Context, id pgtype.UUID) error
 	GetFileForDeletion(ctx context.Context, id pgtype.UUID) (GetFileForDeletionRow, error)
-	GetFolderByID(ctx context.Context, arg GetFolderByIDParams) (Folder, error)
+	GetFileForDownload(ctx context.Context, id pgtype.UUID) (GetFileForDownloadRow, error)
+	GetFolderByID(ctx context.Context, id pgtype.UUID) (Folder, error)
+	GetFolderPath(ctx context.Context, arg GetFolderPathParams) (string, error)
 	GetPhysicalFileByHash(ctx context.Context, contentHash string) (PhysicalFile, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)

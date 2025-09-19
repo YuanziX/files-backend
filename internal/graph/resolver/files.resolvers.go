@@ -17,7 +17,7 @@ import (
 	"github.com/YuanziX/files-backend/internal/database/postgres"
 	"github.com/YuanziX/files-backend/internal/graph/generated"
 	"github.com/YuanziX/files-backend/internal/graph/model"
-	"github.com/YuanziX/files-backend/internal/middleware"
+	"github.com/YuanziX/files-backend/internal/utils"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
@@ -25,59 +25,201 @@ import (
 )
 
 // ID is the resolver for the id field.
-func (r *fileResolver) ID(ctx context.Context, obj *postgres.File) (string, error) {
-	panic(fmt.Errorf("not implemented: ID - id"))
-}
-
-// MimeType is the resolver for the mimeType field.
-func (r *fileResolver) MimeType(ctx context.Context, obj *postgres.File) (string, error) {
-	panic(fmt.Errorf("not implemented: MimeType - mimeType"))
-}
-
-// Size is the resolver for the size field.
-func (r *fileResolver) Size(ctx context.Context, obj *postgres.File) (int32, error) {
-	panic(fmt.Errorf("not implemented: Size - size"))
-}
-
-// UploadDate is the resolver for the uploadDate field.
-func (r *fileResolver) UploadDate(ctx context.Context, obj *postgres.File) (*time.Time, error) {
-	panic(fmt.Errorf("not implemented: UploadDate - uploadDate"))
-}
-
-// ID is the resolver for the id field.
 func (r *folderResolver) ID(ctx context.Context, obj *postgres.Folder) (string, error) {
-	panic(fmt.Errorf("not implemented: ID - id"))
+	return obj.ID.String(), nil
 }
 
 // CreatedAt is the resolver for the createdAt field.
 func (r *folderResolver) CreatedAt(ctx context.Context, obj *postgres.Folder) (*time.Time, error) {
-	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
+	return &obj.CreatedAt.Time, nil
 }
 
-// Parent is the resolver for the parent field.
-func (r *folderResolver) Parent(ctx context.Context, obj *postgres.Folder) (*postgres.Folder, error) {
-	panic(fmt.Errorf("not implemented: Parent - parent"))
+// ParentID is the resolver for the parentID field.
+func (r *folderResolver) ParentID(ctx context.Context, obj *postgres.Folder) (*string, error) {
+	str := obj.ParentID.String()
+	return &str, nil
 }
 
 // ChildrenFolders is the resolver for the childrenFolders field.
 func (r *folderResolver) ChildrenFolders(ctx context.Context, obj *postgres.Folder) ([]*postgres.Folder, error) {
-	panic(fmt.Errorf("not implemented: ChildrenFolders - childrenFolders"))
+	folderID := obj.ID.String()
+	return r.Resolver.Query().GetFoldersInFolder(ctx, &folderID, nil)
 }
 
 // ChildrenFiles is the resolver for the childrenFiles field.
-func (r *folderResolver) ChildrenFiles(ctx context.Context, obj *postgres.Folder) ([]*postgres.File, error) {
-	panic(fmt.Errorf("not implemented: ChildrenFiles - childrenFiles"))
+func (r *folderResolver) ChildrenFiles(ctx context.Context, obj *postgres.Folder) ([]*model.File, error) {
+	folderID := obj.ID.String()
+	return r.Resolver.Query().GetFilesInFolder(ctx, &folderID, nil)
+}
+
+// GetDownloadURL is the resolver for the getDownloadURL field.
+func (r *mutationResolver) GetDownloadURL(ctx context.Context, fileID string, publicToken *string) (*model.DownloadURL, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	fileUUID, err := uuid.Parse(fileID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid fileId")
+	}
+
+	fileToDownload, err := r.DB.GetFileForDownload(ctx, pgtype.UUID{Bytes: fileUUID, Valid: true})
+	if err != nil {
+		return nil, fmt.Errorf("file not found")
+	}
+
+	token := utils.GetPgString(publicToken)
+
+	canAccessFile, err := r.DB.CanAccessFile(ctx, postgres.CanAccessFileParams{
+		ID:               pgtype.UUID{Bytes: fileUUID, Valid: true},
+		PublicToken:      token,
+		SharedWithUserID: userID,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("error checking file access: %w", err)
+	}
+
+	isOwner := fileToDownload.OwnerID.Bytes == userID.Bytes
+	if !isOwner && !canAccessFile {
+		return nil, fmt.Errorf("permission denied")
+	}
+
+	expiry := 10 * time.Minute
+	objectKey := fileToDownload.ContentHash
+
+	req, err := r.S3PresignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: &r.Cfg.S3BucketName,
+		Key:    &objectKey,
+	}, s3.WithPresignExpires(expiry))
+	if err != nil {
+		return nil, fmt.Errorf("could not generate download URL: %w", err)
+	}
+
+	return &model.DownloadURL{
+		DownloadURL: req.URL,
+		Filename:    fileToDownload.Filename,
+	}, nil
+}
+
+// CreateFolder is the resolver for the createFolder field.
+func (r *mutationResolver) CreateFolder(ctx context.Context, name string, parentID *string) (*postgres.Folder, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	var pgParentID pgtype.UUID
+	var newPath string
+	newFolderID := uuid.New() // Generate the new UUID ahead of time
+
+	if parentID != nil {
+		parentUUID := utils.GetPgUUID(parentID)
+		if !parentUUID.Valid {
+			return nil, fmt.Errorf("invalid parentId")
+		}
+
+		// Fetch the parent folder's path to build the new path.
+		parentPath, err := r.DB.GetFolderPath(ctx, postgres.GetFolderPathParams{
+			ID:      parentUUID,
+			OwnerID: userID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("parent folder not found")
+		}
+
+		newPath = fmt.Sprintf("%s.%s", parentPath, strings.ReplaceAll(newFolderID.String(), "-", "_"))
+		pgParentID = parentUUID
+	} else {
+		newPath = strings.ReplaceAll(newFolderID.String(), "-", "_")
+	}
+
+	params := postgres.CreateFolderParams{
+		ID:       pgtype.UUID{Bytes: newFolderID, Valid: true},
+		OwnerID:  userID,
+		ParentID: pgParentID,
+		Name:     name,
+		Path:     newPath,
+	}
+
+	newFolder, err := r.DB.CreateFolder(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create folder: %w", err)
+	}
+	return &postgres.Folder{
+		ID:       newFolder.ID,
+		Name:     newFolder.Name,
+		ParentID: newFolder.ParentID,
+		Path:     newFolder.Path,
+	}, nil
+}
+
+// DeleteFile is the resolver for the deleteFile field.
+func (r *mutationResolver) DeleteFile(ctx context.Context, fileID string) (bool, error) {
+	panic(fmt.Errorf("not implemented: DeleteFile - deleteFile"))
+}
+
+// DeleteFolder is the resolver for the deleteFolder field.
+func (r *mutationResolver) DeleteFolder(ctx context.Context, folderID string) (bool, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
+		return false, fmt.Errorf("access denied")
+	}
+
+	folderUUID := utils.GetPgUUID(&folderID)
+	if !folderUUID.Valid {
+		return false, fmt.Errorf("invalid folderId")
+	}
+
+	// ensure folder exists and belongs to user
+	requestedFolder, err := r.DB.GetFolderByID(ctx, folderUUID)
+
+	if err != nil || (requestedFolder.OwnerID != userID) {
+		return false, fmt.Errorf("folder not found, or invalid permissions: %w", err)
+	}
+
+	// start transaction
+	tx, err := r.DBPool.Begin(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	qtx := r.DB.WithTx(&tx)
+
+	// decrement physical file refs
+	if err := qtx.DecrementPhysicalFileRefsInFolder(ctx, folderUUID); err != nil {
+		tx.Rollback(ctx)
+		return false, fmt.Errorf("failed to decrement references: %w", err)
+	}
+
+	// delete files
+	if err := qtx.DeleteFilesInFolder(ctx, folderUUID); err != nil {
+		tx.Rollback(ctx)
+		return false, fmt.Errorf("failed to delete files: %w", err)
+	}
+
+	// delete folders
+	if err := qtx.DeleteFoldersRecursively(ctx, folderUUID); err != nil {
+		tx.Rollback(ctx)
+		return false, fmt.Errorf("failed to delete folders: %w", err)
+	}
+
+	// commit transaction
+	if err := tx.Commit(ctx); err != nil {
+		return false, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return true, nil
 }
 
 // PreUploadCheck is the resolver for the preUploadCheck field.
 func (r *mutationResolver) PreUploadCheck(ctx context.Context, files []*model.PreUploadFileInput) (*model.PreUploadCheckResponse, error) {
-	userIDStr, ok := ctx.Value(middleware.UserIDKey).(string)
-	if !ok {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
 		return nil, fmt.Errorf("access denied")
 	}
-	ownerID, _ := uuid.Parse(userIDStr)
 
-	var completedFiles []*postgres.File
+	var completedFiles []*model.File
 	var newFiles []*model.PreSignedURL
 
 	for _, fileInput := range files {
@@ -94,17 +236,17 @@ func (r *mutationResolver) PreUploadCheck(ctx context.Context, files []*model.Pr
 			}
 
 			params := postgres.CreateFileReferenceParams{
-				OwnerID:        pgtype.UUID{Bytes: ownerID, Valid: true},
+				OwnerID:        userID,
 				PhysicalFileID: physicalFile.ID,
 				FolderID:       pgFolderID,
 				Filename:       fileInput.Filename,
 			}
 			newFileRef, _ := r.DB.CreateFileReference(ctx, params)
 
-			completedFiles = append(completedFiles, &postgres.File{
-				ID:         newFileRef.ID,
+			completedFiles = append(completedFiles, &model.File{
+				ID:         newFileRef.ID.String(),
 				Filename:   newFileRef.Filename,
-				UploadDate: newFileRef.UploadDate,
+				UploadDate: newFileRef.UploadDate.Time,
 			})
 		} else {
 			// New file
@@ -134,14 +276,13 @@ func (r *mutationResolver) PreUploadCheck(ctx context.Context, files []*model.Pr
 }
 
 // ConfirmUploads is the resolver for the confirmUploads field.
-func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.ConfirmUploadInput) ([]*postgres.File, error) {
-	userIDStr, ok := ctx.Value(middleware.UserIDKey).(string)
-	if !ok {
+func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.ConfirmUploadInput) ([]*model.File, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
 		return nil, fmt.Errorf("access denied")
 	}
 
-	ownerID, _ := uuid.Parse(userIDStr)
-	var successfullyConfirmedFiles []*postgres.File
+	var successfullyConfirmedFiles []*model.File
 
 	for _, upload := range uploads {
 		tx, err := r.DBPool.Begin(ctx)
@@ -161,9 +302,9 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 			log.Printf("Verification failed for hash %s: could not get object from MinIO: %v", upload.Hash, err)
 			continue
 		}
-		defer object.Body.Close()
 
 		magicBytes, err := io.ReadAll(object.Body)
+		object.Body.Close()
 		if err != nil {
 			log.Printf("Verification failed for hash %s: could not read magic bytes: %v", upload.Hash, err)
 			continue
@@ -172,7 +313,7 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 		verifiedMimeType := http.DetectContentType(magicBytes)
 
 		if verifiedMimeType != upload.MimeType {
-			log.Printf("MIME type mismatch for hash %s: client said %s, but content is %s",
+			log.Printf("MIME typename mismatch for hash %s: client said %s, but content is %s",
 				upload.Hash, upload.MimeType, verifiedMimeType)
 
 			continue
@@ -220,7 +361,7 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 		}
 
 		fileRefParams := postgres.CreateFileReferenceParams{
-			OwnerID:        pgtype.UUID{Bytes: ownerID, Valid: true},
+			OwnerID:        userID,
 			PhysicalFileID: physicalFile.ID,
 			FolderID:       pgFolderID,
 			Filename:       upload.Filename,
@@ -235,43 +376,194 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 			return nil, err
 		}
 
-		successfullyConfirmedFiles = append(successfullyConfirmedFiles, &postgres.File{
-			ID:         newFile.ID,
+		successfullyConfirmedFiles = append(successfullyConfirmedFiles, &model.File{
+			ID:         newFile.ID.String(),
 			Filename:   newFile.Filename,
-			UploadDate: newFile.UploadDate,
+			UploadDate: newFile.UploadDate.Time,
 		})
 	}
 
 	return successfullyConfirmedFiles, nil
 }
 
-// CreateFolder is the resolver for the createFolder field.
-func (r *mutationResolver) CreateFolder(ctx context.Context, name string, parentID *string) (*postgres.Folder, error) {
-	panic(fmt.Errorf("not implemented: CreateFolder - createFolder"))
+// GetFilesInFolder is the resolver for the getFilesInFolder field.
+func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*model.File, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	folderUUID := utils.GetPgUUID(folderID)
+	if !folderUUID.Valid {
+		return nil, fmt.Errorf("invalid folderId")
+	}
+
+	requestedFolder, err := r.DB.GetFolderByID(ctx, folderUUID)
+	if err != nil {
+		return nil, fmt.Errorf("folder not found")
+	}
+
+	canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
+		ID:               requestedFolder.ID,
+		PublicToken:      utils.GetPgString(publicToken),
+		SharedWithUserID: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error checking folder access: %w", err)
+	}
+
+	if (requestedFolder.OwnerID != userID) && !canAccessFolder {
+		return nil, fmt.Errorf("permission denied")
+	}
+
+	var files []*model.File
+	if folderID == nil {
+		rootFiles, err := r.DB.ListRootFilesByOwner(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, f := range rootFiles {
+			files = append(files, &model.File{
+				ID:         f.ID.String(),
+				Filename:   f.Filename,
+				UploadDate: f.UploadDate.Time,
+				Size:       int32(f.SizeBytes),
+				MimeType:   f.MimeType,
+			})
+		}
+
+	} else {
+		folderUUID, err := uuid.Parse(*folderID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid folderId")
+		}
+		folderFiles, err := r.DB.ListFilesByOwnerAndFolder(ctx, postgres.ListFilesByOwnerAndFolderParams{
+			OwnerID:  userID,
+			FolderID: pgtype.UUID{Bytes: folderUUID, Valid: true},
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, f := range folderFiles {
+			files = append(files, &model.File{
+				ID:         f.ID.String(),
+				Filename:   f.Filename,
+				UploadDate: f.UploadDate.Time,
+				Size:       int32(f.SizeBytes),
+				MimeType:   f.MimeType,
+			})
+		}
+	}
+
+	return files, nil
 }
 
-// DeleteFile is the resolver for the deleteFile field.
-func (r *mutationResolver) DeleteFile(ctx context.Context, fileID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteFile - deleteFile"))
-}
+// GetFoldersInFolder is the resolver for the getFoldersInFolder field.
+func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*postgres.Folder, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
+		return nil, fmt.Errorf("access denied")
+	}
 
-// MyFiles is the resolver for the myFiles field.
-func (r *queryResolver) MyFiles(ctx context.Context) ([]*postgres.File, error) {
-	panic(fmt.Errorf("not implemented: MyFiles - myFiles"))
-}
+	folderUUID := utils.GetPgUUID(folderID)
+	if !folderUUID.Valid {
+		return nil, fmt.Errorf("invalid folderId")
+	}
 
-// MyFolders is the resolver for the myFolders field.
-func (r *queryResolver) MyFolders(ctx context.Context) ([]*postgres.Folder, error) {
-	panic(fmt.Errorf("not implemented: MyFolders - myFolders"))
+	requestedFolder, err := r.DB.GetFolderByID(ctx, folderUUID)
+	if err != nil {
+		return nil, fmt.Errorf("folder not found")
+	}
+
+	canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
+		ID:               requestedFolder.ID,
+		PublicToken:      utils.GetPgString(publicToken),
+		SharedWithUserID: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error checking folder access: %w", err)
+	}
+
+	if (requestedFolder.OwnerID != userID) && !canAccessFolder {
+		return nil, fmt.Errorf("permission denied")
+	}
+
+	var folders []*postgres.Folder
+	if folderID == nil {
+		rootFolders, err := r.DB.ListRootFoldersByOwner(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, f := range rootFolders {
+			folders = append(folders, &postgres.Folder{
+				ID:        f.ID,
+				Name:      f.Name,
+				CreatedAt: f.CreatedAt,
+				ParentID:  f.ParentID,
+				Path:      f.Path,
+			})
+		}
+
+	} else {
+		folderUUID := utils.GetPgUUID(folderID)
+		if !folderUUID.Valid {
+			return nil, fmt.Errorf("invalid folderId")
+		}
+		folderFiles, err := r.DB.ListSubfoldersByParent(ctx, postgres.ListSubfoldersByParentParams{
+			OwnerID:  userID,
+			ParentID: folderUUID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, f := range folderFiles {
+			folders = append(folders, &postgres.Folder{
+				ID:        f.ID,
+				Name:      f.Name,
+				CreatedAt: f.CreatedAt,
+				ParentID:  f.ParentID,
+				Path:      f.Path,
+			})
+		}
+	}
+
+	return folders, nil
 }
 
 // FolderDetails is the resolver for the folderDetails field.
-func (r *queryResolver) FolderDetails(ctx context.Context, folderID string) (*postgres.Folder, error) {
-	panic(fmt.Errorf("not implemented: FolderDetails - folderDetails"))
-}
+func (r *queryResolver) FolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
+		return nil, fmt.Errorf("access denied")
+	}
 
-// File returns generated.FileResolver implementation.
-func (r *Resolver) File() generated.FileResolver { return &fileResolver{r} }
+	folderUUID := utils.GetPgUUID(&folderID)
+	if !folderUUID.Valid {
+		return nil, fmt.Errorf("invalid folderId")
+	}
+
+	folder, err := r.DB.GetFolderByID(ctx, folderUUID)
+	if err != nil {
+		return nil, fmt.Errorf("folder not found")
+	}
+
+	canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
+		ID:               folder.ID,
+		PublicToken:      utils.GetPgString(publicToken),
+		SharedWithUserID: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error checking folder access: %w", err)
+	}
+
+	if (folder.OwnerID != userID) && !canAccessFolder {
+		return nil, fmt.Errorf("permission denied")
+	}
+
+	return &folder, nil
+}
 
 // Folder returns generated.FolderResolver implementation.
 func (r *Resolver) Folder() generated.FolderResolver { return &folderResolver{r} }
@@ -282,7 +574,6 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type fileResolver struct{ *Resolver }
 type folderResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

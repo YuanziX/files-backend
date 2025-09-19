@@ -67,6 +67,7 @@ type Folder struct {
 	OwnerID   pgtype.UUID        `json:"owner_id"`
 	ParentID  pgtype.UUID        `json:"parent_id"`
 	Name      string             `json:"name"`
+	Path      string             `json:"path"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 

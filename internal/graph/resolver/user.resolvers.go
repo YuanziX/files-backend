@@ -16,8 +16,6 @@ import (
 	"github.com/YuanziX/files-backend/internal/graph/generated"
 	"github.com/YuanziX/files-backend/internal/graph/model"
 	"github.com/YuanziX/files-backend/internal/utils"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -86,17 +84,12 @@ func (r *mutationResolver) Login(ctx context.Context, input model.LoginUser) (*m
 
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*postgres.User, error) {
-	userIDStr, ok := utils.GetUserID(ctx)
-	if !ok {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
 		return nil, fmt.Errorf("access denied: you must be logged in to view your profile")
 	}
 
-	userUUID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID: %w", err)
-	}
-
-	dbUser, err := r.DB.GetUserByID(ctx, pgtype.UUID{Bytes: userUUID, Valid: true})
+	dbUser, err := r.DB.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}

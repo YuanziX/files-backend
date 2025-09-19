@@ -33,7 +33,6 @@ type Config struct {
 }
 
 type ResolverRoot interface {
-	File() FileResolver
 	Folder() FolderResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
@@ -51,6 +50,11 @@ type ComplexityRoot struct {
 		User  func(childComplexity int) int
 	}
 
+	DownloadURL struct {
+		DownloadURL func(childComplexity int) int
+		Filename    func(childComplexity int) int
+	}
+
 	File struct {
 		Filename   func(childComplexity int) int
 		ID         func(childComplexity int) int
@@ -65,13 +69,16 @@ type ComplexityRoot struct {
 		CreatedAt       func(childComplexity int) int
 		ID              func(childComplexity int) int
 		Name            func(childComplexity int) int
-		Parent          func(childComplexity int) int
+		ParentID        func(childComplexity int) int
+		Path            func(childComplexity int) int
 	}
 
 	Mutation struct {
 		ConfirmUploads func(childComplexity int, uploads []*model.ConfirmUploadInput) int
 		CreateFolder   func(childComplexity int, name string, parentID *string) int
 		DeleteFile     func(childComplexity int, fileID string) int
+		DeleteFolder   func(childComplexity int, folderID string) int
+		GetDownloadURL func(childComplexity int, fileID string, publicToken *string) int
 		Login          func(childComplexity int, input model.LoginUser) int
 		PreUploadCheck func(childComplexity int, files []*model.PreUploadFileInput) int
 		RegisterUser   func(childComplexity int, input model.RegisterUser) int
@@ -89,10 +96,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		FolderDetails func(childComplexity int, folderID string) int
-		Me            func(childComplexity int) int
-		MyFiles       func(childComplexity int) int
-		MyFolders     func(childComplexity int) int
+		FolderDetails      func(childComplexity int, folderID string, publicToken *string) int
+		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string) int
+		GetFoldersInFolder func(childComplexity int, folderID *string, publicToken *string) int
+		Me                 func(childComplexity int) int
 	}
 
 	User struct {
@@ -136,6 +143,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AuthResponse.User(childComplexity), true
+
+	case "DownloadURL.downloadURL":
+		if e.complexity.DownloadURL.DownloadURL == nil {
+			break
+		}
+
+		return e.complexity.DownloadURL.DownloadURL(childComplexity), true
+
+	case "DownloadURL.filename":
+		if e.complexity.DownloadURL.Filename == nil {
+			break
+		}
+
+		return e.complexity.DownloadURL.Filename(childComplexity), true
 
 	case "File.filename":
 		if e.complexity.File.Filename == nil {
@@ -207,12 +228,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Folder.Name(childComplexity), true
 
-	case "Folder.parent":
-		if e.complexity.Folder.Parent == nil {
+	case "Folder.parentID":
+		if e.complexity.Folder.ParentID == nil {
 			break
 		}
 
-		return e.complexity.Folder.Parent(childComplexity), true
+		return e.complexity.Folder.ParentID(childComplexity), true
+
+	case "Folder.Path":
+		if e.complexity.Folder.Path == nil {
+			break
+		}
+
+		return e.complexity.Folder.Path(childComplexity), true
 
 	case "Mutation.confirmUploads":
 		if e.complexity.Mutation.ConfirmUploads == nil {
@@ -249,6 +277,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteFile(childComplexity, args["fileId"].(string)), true
+
+	case "Mutation.deleteFolder":
+		if e.complexity.Mutation.DeleteFolder == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteFolder_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteFolder(childComplexity, args["folderId"].(string)), true
+
+	case "Mutation.getDownloadURL":
+		if e.complexity.Mutation.GetDownloadURL == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_getDownloadURL_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.GetDownloadURL(childComplexity, args["fileId"].(string), args["publicToken"].(*string)), true
 
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
@@ -331,7 +383,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.FolderDetails(childComplexity, args["folderId"].(string)), true
+		return e.complexity.Query.FolderDetails(childComplexity, args["folderId"].(string), args["publicToken"].(*string)), true
+
+	case "Query.getFilesInFolder":
+		if e.complexity.Query.GetFilesInFolder == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFilesInFolder_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetFilesInFolder(childComplexity, args["folderId"].(*string), args["publicToken"].(*string)), true
+
+	case "Query.getFoldersInFolder":
+		if e.complexity.Query.GetFoldersInFolder == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFoldersInFolder_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetFoldersInFolder(childComplexity, args["folderId"].(*string), args["publicToken"].(*string)), true
 
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
@@ -339,20 +415,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
-
-	case "Query.myFiles":
-		if e.complexity.Query.MyFiles == nil {
-			break
-		}
-
-		return e.complexity.Query.MyFiles(childComplexity), true
-
-	case "Query.myFolders":
-		if e.complexity.Query.MyFolders == nil {
-			break
-		}
-
-		return e.complexity.Query.MyFolders(childComplexity), true
 
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
@@ -521,7 +583,8 @@ type Folder {
   id: ID!
   name: String!
   createdAt: Time!
-  parent: Folder
+  parentID: ID
+  Path: String!
   childrenFolders: [Folder!]!
   childrenFiles: [File!]!
 }
@@ -535,6 +598,11 @@ type PreSignedURL {
 type PreUploadCheckResponse {
   completedFiles: [File!]!
   newFiles: [PreSignedURL!]!
+}
+
+type DownloadURL {
+  downloadURL: String!
+  filename: String!
 }
 
 input PreUploadFileInput {
@@ -552,16 +620,20 @@ input ConfirmUploadInput {
 }
 
 extend type Query {
-  myFiles: [File!]! @auth
-  myFolders: [Folder!]! @auth
-  folderDetails(folderId: ID!): Folder @auth
+  getFilesInFolder(folderId: ID, publicToken: String): [File!]! @auth
+  getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]! @auth
+  folderDetails(folderId: ID!, publicToken: String): Folder @auth
 }
 
 extend type Mutation {
-  preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse! @auth
-  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]! @auth
+  getDownloadURL(fileId: ID!, publicToken: String): DownloadURL! @auth
+
   createFolder(name: String!, parentId: ID): Folder! @auth
   deleteFile(fileId: ID!): Boolean! @auth
+  deleteFolder(folderId: ID!): Boolean! @auth
+
+  preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse! @auth
+  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]! @auth
 }
 `, BuiltIn: false},
 	{Name: "../schema/user.graphqls", Input: `type User {

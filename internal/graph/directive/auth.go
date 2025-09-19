@@ -10,7 +10,7 @@ import (
 )
 
 func Auth(ctx context.Context, obj any, next graphql.Resolver) (any, error) {
-	if _, ok := utils.GetUserID(ctx); !ok {
+	if user := utils.GetUserID(ctx); !user.Valid {
 		return nil, fmt.Errorf("access denied: you must be logged in")
 	}
 	return next(ctx)

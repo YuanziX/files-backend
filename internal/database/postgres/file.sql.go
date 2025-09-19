@@ -11,6 +11,34 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const canAccessFile = `-- name: CanAccessFile :one
+SELECT EXISTS (
+    SELECT 1
+    FROM shares s
+    JOIN folders f ON f.id = (SELECT folder_id FROM files ff WHERE ff.id = $1)
+    JOIN folders sf ON sf.id = s.folder_id
+    WHERE f.path <@ sf.path
+      AND (
+        (s.share_type = 'public' AND s.public_token = $2)
+        OR
+        (s.share_type = 'user' AND s.shared_with_user_id = $3)
+      )
+)
+`
+
+type CanAccessFileParams struct {
+	ID               pgtype.UUID `json:"id"`
+	PublicToken      pgtype.Text `json:"public_token"`
+	SharedWithUserID pgtype.UUID `json:"shared_with_user_id"`
+}
+
+func (q *Queries) CanAccessFile(ctx context.Context, arg CanAccessFileParams) (bool, error) {
+	row := q.db.QueryRow(ctx, canAccessFile, arg.ID, arg.PublicToken, arg.SharedWithUserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createFileReference = `-- name: CreateFileReference :one
 INSERT INTO files (owner_id, physical_file_id, folder_id, filename)
 VALUES ($1, $2, $3, $4)
@@ -107,6 +135,29 @@ func (q *Queries) GetFileForDeletion(ctx context.Context, id pgtype.UUID) (GetFi
 	row := q.db.QueryRow(ctx, getFileForDeletion, id)
 	var i GetFileForDeletionRow
 	err := row.Scan(&i.OwnerID, &i.PhysicalFileID)
+	return i, err
+}
+
+const getFileForDownload = `-- name: GetFileForDownload :one
+SELECT
+    f.owner_id,
+    f.filename,
+    pf.content_hash
+FROM files f
+JOIN physical_files pf ON f.physical_file_id = pf.id
+WHERE f.id = $1
+`
+
+type GetFileForDownloadRow struct {
+	OwnerID     pgtype.UUID `json:"owner_id"`
+	Filename    string      `json:"filename"`
+	ContentHash string      `json:"content_hash"`
+}
+
+func (q *Queries) GetFileForDownload(ctx context.Context, id pgtype.UUID) (GetFileForDownloadRow, error) {
+	row := q.db.QueryRow(ctx, getFileForDownload, id)
+	var i GetFileForDownloadRow
+	err := row.Scan(&i.OwnerID, &i.Filename, &i.ContentHash)
 	return i, err
 }
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 
 	"github.com/YuanziX/files-backend/internal/database/postgres"
 )
@@ -24,6 +25,19 @@ type ConfirmUploadInput struct {
 	FolderID *string `json:"folderId,omitempty"`
 }
 
+type DownloadURL struct {
+	DownloadURL string `json:"downloadURL"`
+	Filename    string `json:"filename"`
+}
+
+type File struct {
+	ID         string    `json:"id"`
+	Filename   string    `json:"filename"`
+	MimeType   string    `json:"mimeType"`
+	Size       int32     `json:"size"`
+	UploadDate time.Time `json:"uploadDate"`
+}
+
 type LoginUser struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -39,8 +53,8 @@ type PreSignedURL struct {
 }
 
 type PreUploadCheckResponse struct {
-	CompletedFiles []*postgres.File `json:"completedFiles"`
-	NewFiles       []*PreSignedURL  `json:"newFiles"`
+	CompletedFiles []*File         `json:"completedFiles"`
+	NewFiles       []*PreSignedURL `json:"newFiles"`
 }
 
 type PreUploadFileInput struct {

@@ -16,6 +16,29 @@ JOIN physical_files pf ON f.physical_file_id = pf.id
 WHERE f.owner_id = $1 AND f.folder_id IS NULL
 ORDER BY f.filename;
 
+-- name: CanAccessFile :one
+SELECT EXISTS (
+    SELECT 1
+    FROM shares s
+    JOIN folders f ON f.id = (SELECT folder_id FROM files ff WHERE ff.id = $1)
+    JOIN folders sf ON sf.id = s.folder_id
+    WHERE f.path <@ sf.path
+      AND (
+        (s.share_type = 'public' AND s.public_token = $2)
+        OR
+        (s.share_type = 'user' AND s.shared_with_user_id = $3)
+      )
+);
+
+-- name: GetFileForDownload :one
+SELECT
+    f.owner_id,
+    f.filename,
+    pf.content_hash
+FROM files f
+JOIN physical_files pf ON f.physical_file_id = pf.id
+WHERE f.id = $1;
+
 -- name: GetPhysicalFileByHash :one
 SELECT * FROM physical_files
 WHERE content_hash = $1 LIMIT 1;

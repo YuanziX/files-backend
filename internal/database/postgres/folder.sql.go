@@ -11,56 +11,160 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const canAccessFolder = `-- name: CanAccessFolder :one
+SELECT EXISTS (
+    SELECT 1
+    FROM shares s
+    JOIN folders f ON f.id = $1
+    JOIN folders sf ON sf.id = s.folder_id
+    WHERE f.path <@ sf.path
+      AND (
+        (s.share_type = 'public' AND s.public_token = $2)
+        OR
+        (s.share_type = 'user' AND s.shared_with_user_id = $3)
+      )
+)
+`
+
+type CanAccessFolderParams struct {
+	ID               pgtype.UUID `json:"id"`
+	PublicToken      pgtype.Text `json:"public_token"`
+	SharedWithUserID pgtype.UUID `json:"shared_with_user_id"`
+}
+
+func (q *Queries) CanAccessFolder(ctx context.Context, arg CanAccessFolderParams) (bool, error) {
+	row := q.db.QueryRow(ctx, canAccessFolder, arg.ID, arg.PublicToken, arg.SharedWithUserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createFolder = `-- name: CreateFolder :one
-INSERT INTO folders (owner_id, parent_id, name)
-VALUES ($1, $2, $3)
-RETURNING id, owner_id, parent_id, name, created_at
+INSERT INTO folders (id, owner_id, parent_id, name, path)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, owner_id, parent_id, name, path, created_at
 `
 
 type CreateFolderParams struct {
+	ID       pgtype.UUID `json:"id"`
 	OwnerID  pgtype.UUID `json:"owner_id"`
 	ParentID pgtype.UUID `json:"parent_id"`
 	Name     string      `json:"name"`
+	Path     string      `json:"path"`
 }
 
 func (q *Queries) CreateFolder(ctx context.Context, arg CreateFolderParams) (Folder, error) {
-	row := q.db.QueryRow(ctx, createFolder, arg.OwnerID, arg.ParentID, arg.Name)
+	row := q.db.QueryRow(ctx, createFolder,
+		arg.ID,
+		arg.OwnerID,
+		arg.ParentID,
+		arg.Name,
+		arg.Path,
+	)
 	var i Folder
 	err := row.Scan(
 		&i.ID,
 		&i.OwnerID,
 		&i.ParentID,
 		&i.Name,
+		&i.Path,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
-const getFolderByID = `-- name: GetFolderByID :one
-SELECT id, owner_id, parent_id, name, created_at FROM folders
+const decrementPhysicalFileRefsInFolder = `-- name: DecrementPhysicalFileRefsInFolder :exec
+UPDATE physical_files pf
+SET reference_count = reference_count - 1
+WHERE pf.id IN (
+    SELECT f.physical_file_id
+    FROM files f
+    JOIN folders fo ON fo.id = f.folder_id
+    WHERE fo.path <@ (SELECT target.path FROM folders target WHERE target.id = $1)
+)
+`
+
+func (q *Queries) DecrementPhysicalFileRefsInFolder(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, decrementPhysicalFileRefsInFolder, id)
+	return err
+}
+
+const deleteFilesInFolder = `-- name: DeleteFilesInFolder :exec
+DELETE FROM files f
+WHERE f.folder_id IN (
+    SELECT fo.id
+    FROM folders fo
+    WHERE fo.path <@ (SELECT target.path FROM folders target WHERE target.id = $1)
+)
+`
+
+func (q *Queries) DeleteFilesInFolder(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteFilesInFolder, id)
+	return err
+}
+
+const deleteFolder = `-- name: DeleteFolder :exec
+DELETE FROM folders
 WHERE id = $1 AND owner_id = $2
 `
 
-type GetFolderByIDParams struct {
+type DeleteFolderParams struct {
 	ID      pgtype.UUID `json:"id"`
 	OwnerID pgtype.UUID `json:"owner_id"`
 }
 
-func (q *Queries) GetFolderByID(ctx context.Context, arg GetFolderByIDParams) (Folder, error) {
-	row := q.db.QueryRow(ctx, getFolderByID, arg.ID, arg.OwnerID)
+func (q *Queries) DeleteFolder(ctx context.Context, arg DeleteFolderParams) error {
+	_, err := q.db.Exec(ctx, deleteFolder, arg.ID, arg.OwnerID)
+	return err
+}
+
+const deleteFoldersRecursively = `-- name: DeleteFoldersRecursively :exec
+DELETE FROM folders fo
+WHERE fo.path <@ (SELECT target.path FROM folders target WHERE target.id = $1)
+`
+
+func (q *Queries) DeleteFoldersRecursively(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteFoldersRecursively, id)
+	return err
+}
+
+const getFolderByID = `-- name: GetFolderByID :one
+SELECT id, owner_id, parent_id, name, path, created_at FROM folders
+WHERE id = $1
+`
+
+func (q *Queries) GetFolderByID(ctx context.Context, id pgtype.UUID) (Folder, error) {
+	row := q.db.QueryRow(ctx, getFolderByID, id)
 	var i Folder
 	err := row.Scan(
 		&i.ID,
 		&i.OwnerID,
 		&i.ParentID,
 		&i.Name,
+		&i.Path,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
+const getFolderPath = `-- name: GetFolderPath :one
+SELECT path FROM folders WHERE id = $1 AND owner_id = $2
+`
+
+type GetFolderPathParams struct {
+	ID      pgtype.UUID `json:"id"`
+	OwnerID pgtype.UUID `json:"owner_id"`
+}
+
+func (q *Queries) GetFolderPath(ctx context.Context, arg GetFolderPathParams) (string, error) {
+	row := q.db.QueryRow(ctx, getFolderPath, arg.ID, arg.OwnerID)
+	var path string
+	err := row.Scan(&path)
+	return path, err
+}
+
 const listRootFoldersByOwner = `-- name: ListRootFoldersByOwner :many
-SELECT id, owner_id, parent_id, name, created_at FROM folders
+SELECT id, owner_id, parent_id, name, path, created_at FROM folders
 WHERE owner_id = $1 AND parent_id IS NULL
 ORDER BY name
 `
@@ -79,6 +183,7 @@ func (q *Queries) ListRootFoldersByOwner(ctx context.Context, ownerID pgtype.UUI
 			&i.OwnerID,
 			&i.ParentID,
 			&i.Name,
+			&i.Path,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -92,7 +197,7 @@ func (q *Queries) ListRootFoldersByOwner(ctx context.Context, ownerID pgtype.UUI
 }
 
 const listSubfoldersByParent = `-- name: ListSubfoldersByParent :many
-SELECT id, owner_id, parent_id, name, created_at FROM folders
+SELECT id, owner_id, parent_id, name, path, created_at FROM folders
 WHERE owner_id = $1 AND parent_id = $2
 ORDER BY name
 `
@@ -116,6 +221,7 @@ func (q *Queries) ListSubfoldersByParent(ctx context.Context, arg ListSubfolders
 			&i.OwnerID,
 			&i.ParentID,
 			&i.Name,
+			&i.Path,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

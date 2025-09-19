@@ -12,7 +12,8 @@ type Folder {
   id: ID!
   name: String!
   createdAt: Time!
-  parent: Folder
+  parentID: ID
+  Path: String!
   childrenFolders: [Folder!]!
   childrenFiles: [File!]!
 }
@@ -26,6 +27,11 @@ type PreSignedURL {
 type PreUploadCheckResponse {
   completedFiles: [File!]!
   newFiles: [PreSignedURL!]!
+}
+
+type DownloadURL {
+  downloadURL: String!
+  filename: String!
 }
 
 input PreUploadFileInput {
@@ -43,14 +49,18 @@ input ConfirmUploadInput {
 }
 
 extend type Query {
-  myFiles: [File!]! @auth
-  myFolders: [Folder!]! @auth
-  folderDetails(folderId: ID!): Folder @auth
+  getFilesInFolder(folderId: ID, publicToken: String): [File!]! @auth
+  getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]! @auth
+  folderDetails(folderId: ID!, publicToken: String): Folder @auth
 }
 
 extend type Mutation {
-  preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse! @auth
-  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]! @auth
+  getDownloadURL(fileId: ID!, publicToken: String): DownloadURL! @auth
+
   createFolder(name: String!, parentId: ID): Folder! @auth
   deleteFile(fileId: ID!): Boolean! @auth
+  deleteFolder(folderId: ID!): Boolean! @auth
+
+  preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse! @auth
+  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]! @auth
 }
