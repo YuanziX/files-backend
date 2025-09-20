@@ -71,7 +71,7 @@ func (r *mutationResolver) GetDownloadURL(ctx context.Context, fileID string, pu
 	token := utils.GetPgString(publicToken)
 
 	canAccessFile, err := r.DB.CanAccessFile(ctx, postgres.CanAccessFileParams{
-		ID:               pgtype.UUID{Bytes: fileUUID, Valid: true},
+		FileID:           pgtype.UUID{Bytes: fileUUID, Valid: true},
 		PublicToken:      token,
 		SharedWithUserID: userID,
 	})
@@ -413,6 +413,60 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 		Files:         confirmedFiles,
 		FailedUploads: failedUploads,
 	}, nil
+}
+
+// GetFile is the resolver for the getFile field.
+func (r *queryResolver) GetFile(ctx context.Context, fileID string, publicToken *string) (*model.File, error) {
+	userID := utils.GetUserID(ctx)
+
+	fileUUID := utils.GetPgUUID(&fileID)
+	if !fileUUID.Valid {
+		return nil, fmt.Errorf("invalid fileId")
+	}
+
+	requestedFile, err := r.DB.GetFileById(ctx, fileUUID)
+	if err != nil {
+		return nil, fmt.Errorf("file not found: %w", err)
+	}
+
+	// Check if user is owner (when authenticated)
+	if userID.Valid && requestedFile.OwnerID == userID {
+		return &model.File{
+			ID:         requestedFile.ID.String(),
+			Filename:   requestedFile.Filename,
+			UploadDate: requestedFile.UploadDate.Time,
+			Size:       int32(requestedFile.SizeBytes),
+			MimeType:   requestedFile.MimeType,
+		}, nil
+	}
+
+	// Check public access
+	if publicToken != nil {
+		canAccess, err := r.DB.CanAccessFile(ctx, postgres.CanAccessFileParams{
+			FileID:           fileUUID,
+			PublicToken:      utils.GetPgString(publicToken),
+			SharedWithUserID: userID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error checking file access: %w", err)
+		}
+
+		if canAccess {
+			return &model.File{
+				ID:         requestedFile.ID.String(),
+				Filename:   requestedFile.Filename,
+				UploadDate: requestedFile.UploadDate.Time,
+				Size:       int32(requestedFile.SizeBytes),
+				MimeType:   requestedFile.MimeType,
+			}, nil
+		}
+	}
+
+	// No valid access method
+	if !userID.Valid && publicToken == nil {
+		return nil, fmt.Errorf("access denied")
+	}
+	return nil, fmt.Errorf("permission denied")
 }
 
 // GetFilesInFolder is the resolver for the getFilesInFolder field.

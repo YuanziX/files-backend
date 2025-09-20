@@ -15,9 +15,21 @@ const canAccessFile = `-- name: CanAccessFile :one
 SELECT EXISTS (
     SELECT 1
     FROM shares s
-    JOIN folders f ON f.id = (SELECT folder_id FROM files ff WHERE ff.id = $1)
+    WHERE s.file_id = $1
+      AND (
+        (s.share_type = 'public' AND s.public_token = $2)
+        OR
+        (s.share_type = 'user' AND s.shared_with_user_id = $3)
+      )
+    
+    UNION
+    
+    SELECT 1
+    FROM shares s
     JOIN folders sf ON sf.id = s.folder_id
-    WHERE f.path <@ sf.path
+    JOIN files f ON f.id = $1
+    JOIN folders ff ON ff.id = f.folder_id
+    WHERE ff.path <@ sf.path
       AND (
         (s.share_type = 'public' AND s.public_token = $2)
         OR
@@ -27,13 +39,13 @@ SELECT EXISTS (
 `
 
 type CanAccessFileParams struct {
-	ID               pgtype.UUID `json:"id"`
+	FileID           pgtype.UUID `json:"file_id"`
 	PublicToken      pgtype.Text `json:"public_token"`
 	SharedWithUserID pgtype.UUID `json:"shared_with_user_id"`
 }
 
 func (q *Queries) CanAccessFile(ctx context.Context, arg CanAccessFileParams) (bool, error) {
-	row := q.db.QueryRow(ctx, canAccessFile, arg.ID, arg.PublicToken, arg.SharedWithUserID)
+	row := q.db.QueryRow(ctx, canAccessFile, arg.FileID, arg.PublicToken, arg.SharedWithUserID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -138,6 +150,38 @@ DELETE FROM files WHERE id = $1
 func (q *Queries) DeleteFileReference(ctx context.Context, id pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deleteFileReference, id)
 	return err
+}
+
+const getFileById = `-- name: GetFileById :one
+SELECT
+    f.owner_id, f.id, f.filename, f.upload_date,
+    pf.mime_type, pf.size_bytes
+FROM files f
+JOIN physical_files pf ON f.physical_file_id = pf.id
+WHERE f.id = $1
+`
+
+type GetFileByIdRow struct {
+	OwnerID    pgtype.UUID        `json:"owner_id"`
+	ID         pgtype.UUID        `json:"id"`
+	Filename   string             `json:"filename"`
+	UploadDate pgtype.Timestamptz `json:"upload_date"`
+	MimeType   string             `json:"mime_type"`
+	SizeBytes  int64              `json:"size_bytes"`
+}
+
+func (q *Queries) GetFileById(ctx context.Context, id pgtype.UUID) (GetFileByIdRow, error) {
+	row := q.db.QueryRow(ctx, getFileById, id)
+	var i GetFileByIdRow
+	err := row.Scan(
+		&i.OwnerID,
+		&i.ID,
+		&i.Filename,
+		&i.UploadDate,
+		&i.MimeType,
+		&i.SizeBytes,
+	)
+	return i, err
 }
 
 const getFileByIdAndOwner = `-- name: GetFileByIdAndOwner :one

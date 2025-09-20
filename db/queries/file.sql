@@ -16,13 +16,33 @@ JOIN physical_files pf ON f.physical_file_id = pf.id
 WHERE f.owner_id = $1 AND f.folder_id IS NULL
 ORDER BY f.filename;
 
+-- name: GetFileById :one
+SELECT
+    f.owner_id, f.id, f.filename, f.upload_date,
+    pf.mime_type, pf.size_bytes
+FROM files f
+JOIN physical_files pf ON f.physical_file_id = pf.id
+WHERE f.id = $1;
+
 -- name: CanAccessFile :one
 SELECT EXISTS (
     SELECT 1
     FROM shares s
-    JOIN folders f ON f.id = (SELECT folder_id FROM files ff WHERE ff.id = $1)
+    WHERE s.file_id = $1
+      AND (
+        (s.share_type = 'public' AND s.public_token = $2)
+        OR
+        (s.share_type = 'user' AND s.shared_with_user_id = $3)
+      )
+    
+    UNION
+    
+    SELECT 1
+    FROM shares s
     JOIN folders sf ON sf.id = s.folder_id
-    WHERE f.path <@ sf.path
+    JOIN files f ON f.id = $1
+    JOIN folders ff ON ff.id = f.folder_id
+    WHERE ff.path <@ sf.path
       AND (
         (s.share_type = 'public' AND s.public_token = $2)
         OR

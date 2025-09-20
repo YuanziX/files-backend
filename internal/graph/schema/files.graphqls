@@ -60,6 +60,7 @@ type ConfirmUploadsResponse {
 }
 
 extend type Query {
+  getFile(fileId: ID!, publicToken: String): File
   getFilesInFolder(folderId: ID, publicToken: String): [File!]!
   getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]!
   getFolderDetails(folderId: ID!, publicToken: String): Folder

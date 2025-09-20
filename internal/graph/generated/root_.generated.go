@@ -115,6 +115,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		GetFile            func(childComplexity int, fileID string, publicToken *string) int
 		GetFileShares      func(childComplexity int, fileID string) int
 		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string) int
 		GetFolderDetails   func(childComplexity int, folderID string, publicToken *string) int
@@ -524,6 +525,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PreUploadCheckResponse.NewFiles(childComplexity), true
 
+	case "Query.getFile":
+		if e.complexity.Query.GetFile == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetFile(childComplexity, args["fileId"].(string), args["publicToken"].(*string)), true
+
 	case "Query.getFileShares":
 		if e.complexity.Query.GetFileShares == nil {
 			break
@@ -862,6 +875,7 @@ type ConfirmUploadsResponse {
 }
 
 extend type Query {
+  getFile(fileId: ID!, publicToken: String): File
   getFilesInFolder(folderId: ID, publicToken: String): [File!]!
   getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]!
   getFolderDetails(folderId: ID!, publicToken: String): Folder
