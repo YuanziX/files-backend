@@ -48,6 +48,31 @@ type File struct {
 	UploadDate time.Time `json:"uploadDate"`
 }
 
+type FileFilterInput struct {
+	Filename       *string    `json:"filename,omitempty"`
+	MimeType       *string    `json:"mimeType,omitempty"`
+	MinSize        *int32     `json:"minSize,omitempty"`
+	MaxSize        *int32     `json:"maxSize,omitempty"`
+	UploadedAfter  *time.Time `json:"uploadedAfter,omitempty"`
+	UploadedBefore *time.Time `json:"uploadedBefore,omitempty"`
+}
+
+type FileSortInput struct {
+	Field FileSortField `json:"field"`
+	Order SortOrder     `json:"order"`
+}
+
+type FolderFilterInput struct {
+	Name          *string    `json:"name,omitempty"`
+	CreatedAfter  *time.Time `json:"createdAfter,omitempty"`
+	CreatedBefore *time.Time `json:"createdBefore,omitempty"`
+}
+
+type FolderSortInput struct {
+	Field FolderSortField `json:"field"`
+	Order SortOrder       `json:"order"`
+}
+
 type LoginUser struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -80,6 +105,120 @@ type RegisterUser struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type FileSortField string
+
+const (
+	FileSortFieldFilename   FileSortField = "FILENAME"
+	FileSortFieldSize       FileSortField = "SIZE"
+	FileSortFieldUploadDate FileSortField = "UPLOAD_DATE"
+	FileSortFieldMimeType   FileSortField = "MIME_TYPE"
+)
+
+var AllFileSortField = []FileSortField{
+	FileSortFieldFilename,
+	FileSortFieldSize,
+	FileSortFieldUploadDate,
+	FileSortFieldMimeType,
+}
+
+func (e FileSortField) IsValid() bool {
+	switch e {
+	case FileSortFieldFilename, FileSortFieldSize, FileSortFieldUploadDate, FileSortFieldMimeType:
+		return true
+	}
+	return false
+}
+
+func (e FileSortField) String() string {
+	return string(e)
+}
+
+func (e *FileSortField) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FileSortField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FileSortField", str)
+	}
+	return nil
+}
+
+func (e FileSortField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *FileSortField) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e FileSortField) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type FolderSortField string
+
+const (
+	FolderSortFieldName      FolderSortField = "NAME"
+	FolderSortFieldCreatedAt FolderSortField = "CREATED_AT"
+)
+
+var AllFolderSortField = []FolderSortField{
+	FolderSortFieldName,
+	FolderSortFieldCreatedAt,
+}
+
+func (e FolderSortField) IsValid() bool {
+	switch e {
+	case FolderSortFieldName, FolderSortFieldCreatedAt:
+		return true
+	}
+	return false
+}
+
+func (e FolderSortField) String() string {
+	return string(e)
+}
+
+func (e *FolderSortField) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FolderSortField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FolderSortField", str)
+	}
+	return nil
+}
+
+func (e FolderSortField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *FolderSortField) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e FolderSortField) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
 
 type Role string
@@ -132,6 +271,61 @@ func (e *Role) UnmarshalJSON(b []byte) error {
 }
 
 func (e Role) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type SortOrder string
+
+const (
+	SortOrderAsc  SortOrder = "ASC"
+	SortOrderDesc SortOrder = "DESC"
+)
+
+var AllSortOrder = []SortOrder{
+	SortOrderAsc,
+	SortOrderDesc,
+}
+
+func (e SortOrder) IsValid() bool {
+	switch e {
+	case SortOrderAsc, SortOrderDesc:
+		return true
+	}
+	return false
+}
+
+func (e SortOrder) String() string {
+	return string(e)
+}
+
+func (e *SortOrder) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SortOrder(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SortOrder", str)
+	}
+	return nil
+}
+
+func (e SortOrder) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *SortOrder) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e SortOrder) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

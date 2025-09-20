@@ -117,10 +117,10 @@ type ComplexityRoot struct {
 	Query struct {
 		GetFile            func(childComplexity int, fileID string, publicToken *string) int
 		GetFileShares      func(childComplexity int, fileID string) int
-		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string) int
+		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string, sort *model.FileSortInput, filter *model.FileFilterInput) int
 		GetFolderDetails   func(childComplexity int, folderID string, publicToken *string) int
 		GetFolderShares    func(childComplexity int, folderID string) int
-		GetFoldersInFolder func(childComplexity int, folderID *string, publicToken *string) int
+		GetFoldersInFolder func(childComplexity int, folderID *string, publicToken *string, sort *model.FolderSortInput, filter *model.FolderFilterInput) int
 		GetMyShares        func(childComplexity int) int
 		Me                 func(childComplexity int) int
 	}
@@ -559,7 +559,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.GetFilesInFolder(childComplexity, args["folderId"].(*string), args["publicToken"].(*string)), true
+		return e.complexity.Query.GetFilesInFolder(childComplexity, args["folderId"].(*string), args["publicToken"].(*string), args["sort"].(*model.FileSortInput), args["filter"].(*model.FileFilterInput)), true
 
 	case "Query.getFolderDetails":
 		if e.complexity.Query.GetFolderDetails == nil {
@@ -595,7 +595,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.GetFoldersInFolder(childComplexity, args["folderId"].(*string), args["publicToken"].(*string)), true
+		return e.complexity.Query.GetFoldersInFolder(childComplexity, args["folderId"].(*string), args["publicToken"].(*string), args["sort"].(*model.FolderSortInput), args["filter"].(*model.FolderFilterInput)), true
 
 	case "Query.getMyShares":
 		if e.complexity.Query.GetMyShares == nil {
@@ -704,6 +704,10 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputConfirmUploadInput,
+		ec.unmarshalInputFileFilterInput,
+		ec.unmarshalInputFileSortInput,
+		ec.unmarshalInputFolderFilterInput,
+		ec.unmarshalInputFolderSortInput,
 		ec.unmarshalInputLoginUser,
 		ec.unmarshalInputPreUploadFileInput,
 		ec.unmarshalInputRegisterUser,
@@ -874,10 +878,62 @@ type ConfirmUploadsResponse {
   failedUploads: [FailedUpload!]!
 }
 
+enum SortOrder {
+  ASC
+  DESC
+}
+
+enum FileSortField {
+  FILENAME
+  SIZE
+  UPLOAD_DATE
+  MIME_TYPE
+}
+
+enum FolderSortField {
+  NAME
+  CREATED_AT
+}
+
+input FileSortInput {
+  field: FileSortField!
+  order: SortOrder!
+}
+
+input FolderSortInput {
+  field: FolderSortField!
+  order: SortOrder!
+}
+
+input FileFilterInput {
+  filename: String
+  mimeType: String
+  minSize: Int
+  maxSize: Int
+  uploadedAfter: Time
+  uploadedBefore: Time
+}
+
+input FolderFilterInput {
+  name: String
+  createdAfter: Time
+  createdBefore: Time
+}
+
 extend type Query {
   getFile(fileId: ID!, publicToken: String): File
-  getFilesInFolder(folderId: ID, publicToken: String): [File!]!
-  getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]!
+  getFilesInFolder(
+    folderId: ID
+    publicToken: String
+    sort: FileSortInput
+    filter: FileFilterInput
+  ): [File!]!
+  getFoldersInFolder(
+    folderId: ID
+    publicToken: String
+    sort: FolderSortInput
+    filter: FolderFilterInput
+  ): [Folder!]!
   getFolderDetails(folderId: ID!, publicToken: String): Folder
 }
 

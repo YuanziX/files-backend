@@ -47,8 +47,8 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	GetFile(ctx context.Context, fileID string, publicToken *string) (*model.File, error)
-	GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*model.File, error)
-	GetFoldersInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*postgres.Folder, error)
+	GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string, sort *model.FileSortInput, filter *model.FileFilterInput) ([]*model.File, error)
+	GetFoldersInFolder(ctx context.Context, folderID *string, publicToken *string, sort *model.FolderSortInput, filter *model.FolderFilterInput) ([]*postgres.Folder, error)
 	GetFolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error)
 	GetFileShares(ctx context.Context, fileID string) ([]*postgres.Share, error)
 	GetFolderShares(ctx context.Context, folderID string) ([]*postgres.Share, error)
@@ -306,6 +306,16 @@ func (ec *executionContext) field_Query_getFilesInFolder_args(ctx context.Contex
 		return nil, err
 	}
 	args["publicToken"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "sort", ec.unmarshalOFileSortInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSortInput)
+	if err != nil {
+		return nil, err
+	}
+	args["sort"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOFileFilterInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileFilterInput)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg3
 	return args, nil
 }
 
@@ -349,6 +359,16 @@ func (ec *executionContext) field_Query_getFoldersInFolder_args(ctx context.Cont
 		return nil, err
 	}
 	args["publicToken"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "sort", ec.unmarshalOFolderSortInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSortInput)
+	if err != nil {
+		return nil, err
+	}
+	args["sort"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOFolderFilterInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderFilterInput)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg3
 	return args, nil
 }
 
@@ -2017,7 +2037,7 @@ func (ec *executionContext) _Query_getFilesInFolder(ctx context.Context, field g
 		ec.fieldContext_Query_getFilesInFolder,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().GetFilesInFolder(ctx, fc.Args["folderId"].(*string), fc.Args["publicToken"].(*string))
+			return ec.resolvers.Query().GetFilesInFolder(ctx, fc.Args["folderId"].(*string), fc.Args["publicToken"].(*string), fc.Args["sort"].(*model.FileSortInput), fc.Args["filter"].(*model.FileFilterInput))
 		},
 		nil,
 		ec.marshalNFile2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileᚄ,
@@ -2070,7 +2090,7 @@ func (ec *executionContext) _Query_getFoldersInFolder(ctx context.Context, field
 		ec.fieldContext_Query_getFoldersInFolder,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().GetFoldersInFolder(ctx, fc.Args["folderId"].(*string), fc.Args["publicToken"].(*string))
+			return ec.resolvers.Query().GetFoldersInFolder(ctx, fc.Args["folderId"].(*string), fc.Args["publicToken"].(*string), fc.Args["sort"].(*model.FolderSortInput), fc.Args["filter"].(*model.FolderFilterInput))
 		},
 		nil,
 		ec.marshalNFolder2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolderᚄ,
@@ -2593,6 +2613,177 @@ func (ec *executionContext) unmarshalInputConfirmUploadInput(ctx context.Context
 				return it, err
 			}
 			it.FolderID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFileFilterInput(ctx context.Context, obj any) (model.FileFilterInput, error) {
+	var it model.FileFilterInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"filename", "mimeType", "minSize", "maxSize", "uploadedAfter", "uploadedBefore"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "filename":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filename"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Filename = data
+		case "mimeType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mimeType"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MimeType = data
+		case "minSize":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minSize"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinSize = data
+		case "maxSize":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxSize"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxSize = data
+		case "uploadedAfter":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uploadedAfter"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UploadedAfter = data
+		case "uploadedBefore":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uploadedBefore"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UploadedBefore = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFileSortInput(ctx context.Context, obj any) (model.FileSortInput, error) {
+	var it model.FileSortInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"field", "order"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "field":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			data, err := ec.unmarshalNFileSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSortField(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Field = data
+		case "order":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("order"))
+			data, err := ec.unmarshalNSortOrder2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐSortOrder(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Order = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFolderFilterInput(ctx context.Context, obj any) (model.FolderFilterInput, error) {
+	var it model.FolderFilterInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "createdAfter", "createdBefore"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "createdAfter":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdAfter"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreatedAfter = data
+		case "createdBefore":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdBefore"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreatedBefore = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFolderSortInput(ctx context.Context, obj any) (model.FolderSortInput, error) {
+	var it model.FolderSortInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"field", "order"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "field":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			data, err := ec.unmarshalNFolderSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSortField(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Field = data
+		case "order":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("order"))
+			data, err := ec.unmarshalNSortOrder2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐSortOrder(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Order = data
 		}
 	}
 
@@ -3685,6 +3876,16 @@ func (ec *executionContext) marshalNFile2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbac
 	return ec._File(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFileSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSortField(ctx context.Context, v any) (model.FileSortField, error) {
+	var res model.FileSortField
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFileSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSortField(ctx context.Context, sel ast.SelectionSet, v model.FileSortField) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNFolder2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolder(ctx context.Context, sel ast.SelectionSet, v postgres.Folder) graphql.Marshaler {
 	return ec._Folder(ctx, sel, &v)
 }
@@ -3741,6 +3942,16 @@ func (ec *executionContext) marshalNFolder2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑb
 		return graphql.Null
 	}
 	return ec._Folder(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFolderSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSortField(ctx context.Context, v any) (model.FolderSortField, error) {
+	var res model.FolderSortField
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFolderSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSortField(ctx context.Context, sel ast.SelectionSet, v model.FolderSortField) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNPreSignedURL2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐPreSignedURLᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PreSignedURL) graphql.Marshaler {
@@ -3831,6 +4042,16 @@ func (ec *executionContext) unmarshalNPreUploadFileInput2ᚖgithubᚗcomᚋYuanz
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNSortOrder2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐSortOrder(ctx context.Context, v any) (model.SortOrder, error) {
+	var res model.SortOrder
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSortOrder2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐSortOrder(ctx context.Context, sel ast.SelectionSet, v model.SortOrder) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v any) (time.Time, error) {
 	res, err := graphql.UnmarshalTime(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3876,11 +4097,61 @@ func (ec *executionContext) marshalOFile2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbac
 	return ec._File(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOFileFilterInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileFilterInput(ctx context.Context, v any) (*model.FileFilterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFileFilterInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOFileSortInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSortInput(ctx context.Context, v any) (*model.FileSortInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFileSortInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalOFolder2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolder(ctx context.Context, sel ast.SelectionSet, v *postgres.Folder) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Folder(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOFolderFilterInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderFilterInput(ctx context.Context, v any) (*model.FolderFilterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFolderFilterInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOFolderSortInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSortInput(ctx context.Context, v any) (*model.FolderSortInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFolderSortInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalTime(*v)
+	return res
 }
 
 // endregion ***************************** type.gotpl *****************************

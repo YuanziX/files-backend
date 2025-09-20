@@ -42,13 +42,13 @@ func (r *folderResolver) ParentID(ctx context.Context, obj *postgres.Folder) (*s
 // ChildrenFolders is the resolver for the childrenFolders field.
 func (r *folderResolver) ChildrenFolders(ctx context.Context, obj *postgres.Folder) ([]*postgres.Folder, error) {
 	folderID := obj.ID.String()
-	return r.Resolver.Query().GetFoldersInFolder(ctx, &folderID, nil)
+	return r.Resolver.Query().GetFoldersInFolder(ctx, &folderID, nil, nil, nil)
 }
 
 // ChildrenFiles is the resolver for the childrenFiles field.
 func (r *folderResolver) ChildrenFiles(ctx context.Context, obj *postgres.Folder) ([]*model.File, error) {
 	folderID := obj.ID.String()
-	return r.Resolver.Query().GetFilesInFolder(ctx, &folderID, nil)
+	return r.Resolver.Query().GetFilesInFolder(ctx, &folderID, nil, nil, nil)
 }
 
 // GetDownloadURL is the resolver for the getDownloadURL field.
@@ -471,7 +471,7 @@ func (r *queryResolver) GetFile(ctx context.Context, fileID string, publicToken 
 }
 
 // GetFilesInFolder is the resolver for the getFilesInFolder field.
-func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*model.File, error) {
+func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string, sort *model.FileSortInput, filter *model.FileFilterInput) ([]*model.File, error) {
 	userID := utils.GetUserID(ctx)
 	if !userID.Valid && publicToken == nil {
 		return nil, fmt.Errorf("access denied")
@@ -490,8 +490,23 @@ func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, 
 		folderID = &folderIDStr
 	}
 
+	// Build sort and filter parameters
+	sortField, sortOrder := utils.BuildFileSortParams(sort)
+	filename, mimeType, minSize, maxSize, uploadedAfter, uploadedBefore := utils.BuildFileFilterParams(filter)
+
 	if folderID == nil && publicToken == nil {
-		rootFiles, err := r.DB.ListRootFilesByOwner(ctx, userID)
+		// Root files for authenticated user with sorting and filtering
+		rootFiles, err := r.DB.ListRootFilesByOwnerWithSortAndFilter(ctx, postgres.ListRootFilesByOwnerWithSortAndFilterParams{
+			OwnerID:        userID,
+			SortField:      utils.GetPgString(sortField),
+			SortOrder:      utils.GetPgString(sortOrder),
+			FilenameFilter: utils.GetPgString(filename),
+			MimeTypeFilter: utils.GetPgString(mimeType),
+			MinSize:        utils.GetPgInt8(minSize),
+			MaxSize:        utils.GetPgInt8(maxSize),
+			UploadedAfter:  utils.GetPgTime(uploadedAfter),
+			UploadedBefore: utils.GetPgTime(uploadedBefore),
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -530,7 +545,18 @@ func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, 
 			return nil, fmt.Errorf("permission denied")
 		}
 
-		folderFiles, err := r.DB.ListFilesByFolder(ctx, folderUUID)
+		// Files in folder with sorting and filtering
+		folderFiles, err := r.DB.ListFilesByFolderWithSortAndFilter(ctx, postgres.ListFilesByFolderWithSortAndFilterParams{
+			FolderID:       folderUUID,
+			SortField:      utils.GetPgString(sortField),
+			SortOrder:      utils.GetPgString(sortOrder),
+			FilenameFilter: utils.GetPgString(filename),
+			MimeTypeFilter: utils.GetPgString(mimeType),
+			MinSize:        utils.GetPgInt8(minSize),
+			MaxSize:        utils.GetPgInt8(maxSize),
+			UploadedAfter:  utils.GetPgTime(uploadedAfter),
+			UploadedBefore: utils.GetPgTime(uploadedBefore),
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -549,7 +575,7 @@ func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, 
 }
 
 // GetFoldersInFolder is the resolver for the getFoldersInFolder field.
-func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*postgres.Folder, error) {
+func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string, publicToken *string, sort *model.FolderSortInput, filter *model.FolderFilterInput) ([]*postgres.Folder, error) {
 	userID := utils.GetUserID(ctx)
 	if !userID.Valid && publicToken == nil {
 		return nil, fmt.Errorf("access denied")
@@ -567,8 +593,20 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 		folderID = &folderIDStr
 	}
 
+	// Build sort and filter parameters
+	sortField, sortOrder := utils.BuildFolderSortParams(sort)
+	name, createdAfter, createdBefore := utils.BuildFolderFilterParams(filter)
+
 	if folderID == nil && publicToken == nil {
-		rootFolders, err := r.DB.ListRootFoldersByOwner(ctx, userID)
+		// Root folders for authenticated user with sorting and filtering
+		rootFolders, err := r.DB.ListRootFoldersByOwnerWithSortAndFilter(ctx, postgres.ListRootFoldersByOwnerWithSortAndFilterParams{
+			OwnerID:       userID,
+			SortField:     utils.GetPgString(sortField),
+			SortOrder:     utils.GetPgString(sortOrder),
+			NameFilter:    utils.GetPgString(name),
+			CreatedAfter:  utils.GetPgTime(createdAfter),
+			CreatedBefore: utils.GetPgTime(createdBefore),
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -580,6 +618,7 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 				CreatedAt: f.CreatedAt,
 				ParentID:  f.ParentID,
 				Path:      f.Path,
+				OwnerID:   f.OwnerID,
 			})
 		}
 
@@ -607,7 +646,15 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 			return nil, fmt.Errorf("permission denied")
 		}
 
-		folderFiles, err := r.DB.ListSubfoldersByParent(ctx, folderUUID)
+		// Subfolders with sorting and filtering
+		folderFiles, err := r.DB.ListSubfoldersByParentWithSortAndFilter(ctx, postgres.ListSubfoldersByParentWithSortAndFilterParams{
+			ParentID:      folderUUID,
+			SortField:     utils.GetPgString(sortField),
+			SortOrder:     utils.GetPgString(sortOrder),
+			NameFilter:    utils.GetPgString(name),
+			CreatedAfter:  utils.GetPgTime(createdAfter),
+			CreatedBefore: utils.GetPgTime(createdBefore),
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -618,6 +665,7 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 				CreatedAt: f.CreatedAt,
 				ParentID:  f.ParentID,
 				Path:      f.Path,
+				OwnerID:   f.OwnerID,
 			})
 		}
 	}

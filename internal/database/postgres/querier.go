@@ -40,9 +40,13 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	ListFilesByFolder(ctx context.Context, folderID pgtype.UUID) ([]ListFilesByFolderRow, error)
+	ListFilesByFolderWithSortAndFilter(ctx context.Context, arg ListFilesByFolderWithSortAndFilterParams) ([]ListFilesByFolderWithSortAndFilterRow, error)
 	ListRootFilesByOwner(ctx context.Context, ownerID pgtype.UUID) ([]ListRootFilesByOwnerRow, error)
+	ListRootFilesByOwnerWithSortAndFilter(ctx context.Context, arg ListRootFilesByOwnerWithSortAndFilterParams) ([]ListRootFilesByOwnerWithSortAndFilterRow, error)
 	ListRootFoldersByOwner(ctx context.Context, ownerID pgtype.UUID) ([]Folder, error)
+	ListRootFoldersByOwnerWithSortAndFilter(ctx context.Context, arg ListRootFoldersByOwnerWithSortAndFilterParams) ([]ListRootFoldersByOwnerWithSortAndFilterRow, error)
 	ListSubfoldersByParent(ctx context.Context, parentID pgtype.UUID) ([]Folder, error)
+	ListSubfoldersByParentWithSortAndFilter(ctx context.Context, arg ListSubfoldersByParentWithSortAndFilterParams) ([]ListSubfoldersByParentWithSortAndFilterRow, error)
 	RevokePublicShare(ctx context.Context, arg RevokePublicShareParams) error
 	RevokeUserShare(ctx context.Context, arg RevokeUserShareParams) error
 	ShareFilePublicly(ctx context.Context, arg ShareFilePubliclyParams) error

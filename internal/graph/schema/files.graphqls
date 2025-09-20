@@ -59,10 +59,62 @@ type ConfirmUploadsResponse {
   failedUploads: [FailedUpload!]!
 }
 
+enum SortOrder {
+  ASC
+  DESC
+}
+
+enum FileSortField {
+  FILENAME
+  SIZE
+  UPLOAD_DATE
+  MIME_TYPE
+}
+
+enum FolderSortField {
+  NAME
+  CREATED_AT
+}
+
+input FileSortInput {
+  field: FileSortField!
+  order: SortOrder!
+}
+
+input FolderSortInput {
+  field: FolderSortField!
+  order: SortOrder!
+}
+
+input FileFilterInput {
+  filename: String
+  mimeType: String
+  minSize: Int
+  maxSize: Int
+  uploadedAfter: Time
+  uploadedBefore: Time
+}
+
+input FolderFilterInput {
+  name: String
+  createdAfter: Time
+  createdBefore: Time
+}
+
 extend type Query {
   getFile(fileId: ID!, publicToken: String): File
-  getFilesInFolder(folderId: ID, publicToken: String): [File!]!
-  getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]!
+  getFilesInFolder(
+    folderId: ID
+    publicToken: String
+    sort: FileSortInput
+    filter: FileFilterInput
+  ): [File!]!
+  getFoldersInFolder(
+    folderId: ID
+    publicToken: String
+    sort: FolderSortInput
+    filter: FolderFilterInput
+  ): [Folder!]!
   getFolderDetails(folderId: ID!, publicToken: String): Folder
 }
 
