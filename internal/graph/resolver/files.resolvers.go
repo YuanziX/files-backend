@@ -423,7 +423,7 @@ func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, 
 	}
 
 	var files []*model.File
-	if publicToken != nil {
+	if publicToken != nil && folderID == nil {
 		folderIDFromDB, err := r.DB.GetFolderIdByPublicToken(ctx, utils.GetPgString(publicToken))
 
 		if err != nil {
@@ -501,7 +501,7 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 	}
 
 	var folders []*postgres.Folder
-	if publicToken != nil {
+	if publicToken != nil && folderID == nil {
 		folderIDFromDB, err := r.DB.GetFolderIdByPublicToken(ctx, utils.GetPgString(publicToken))
 		if err != nil {
 			return nil, fmt.Errorf("invalid public token or no access to any folder with this token")
