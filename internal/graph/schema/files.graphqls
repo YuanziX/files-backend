@@ -19,6 +19,80 @@ type Folder {
   childrenFiles: [File!]!
 }
 
+# Enums for sorting
+enum FileSortField {
+  FILENAME
+  MIME_TYPE
+  SIZE
+  UPLOAD_DATE
+}
+
+enum FolderSortField {
+  NAME
+  CREATED_AT
+  PATH
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+# Filter inputs
+input FileFilter {
+  filename: String # Contains search (case-insensitive)
+  mimeType: String # Contains search for MIME type
+  # Size filters
+  minSize: Int
+  maxSize: Int
+  # Date filters
+  uploadedAfter: Time
+  uploadedBefore: Time
+}
+
+input FolderFilter {
+  name: String # Contains search (case-insensitive)
+  path: String # Contains search in path
+  # Date filters
+  createdAfter: Time
+  createdBefore: Time
+  # Parent folder filter
+  parentID: ID
+}
+
+# Sort inputs
+input FileSort {
+  field: FileSortField!
+  direction: SortDirection!
+}
+
+input FolderSort {
+  field: FolderSortField!
+  direction: SortDirection!
+}
+
+# Pagination
+input PaginationInput {
+  limit: Int = 20
+  offset: Int = 0
+}
+
+# Response types with pagination info
+type FilesResponse {
+  files: [File!]!
+  totalCount: Int!
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+type FoldersResponse {
+  folders: [Folder!]!
+  totalCount: Int!
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+# Existing types
 type PreSignedURL {
   filename: String!
   hash: String!
@@ -61,9 +135,45 @@ type ConfirmUploadsResponse {
 
 extend type Query {
   getFile(fileId: ID!, publicToken: String): File
+
+  getFiles(
+    filter: FileFilter
+    sort: FileSort
+    pagination: PaginationInput
+    folderId: ID
+    publicToken: String
+  ): FilesResponse!
+
+  getFolders(
+    filter: FolderFilter
+    sort: FolderSort
+    pagination: PaginationInput
+    parentId: ID
+    publicToken: String
+  ): FoldersResponse!
+
+  getFolderDetails(folderId: ID!, publicToken: String): Folder
+
+  # Search functionality
+  searchFiles(
+    query: String!
+    filter: FileFilter
+    sort: FileSort
+    pagination: PaginationInput
+    publicToken: String
+  ): FilesResponse!
+
+  searchFolders(
+    query: String!
+    filter: FolderFilter
+    sort: FolderSort
+    pagination: PaginationInput
+    publicToken: String
+  ): FoldersResponse!
+
+  # Legacy queries for backward compatibility
   getFilesInFolder(folderId: ID, publicToken: String): [File!]!
   getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]!
-  getFolderDetails(folderId: ID!, publicToken: String): Folder
 }
 
 extend type Mutation {

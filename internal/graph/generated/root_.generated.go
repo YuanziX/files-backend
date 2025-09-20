@@ -74,6 +74,13 @@ type ComplexityRoot struct {
 		UploadDate func(childComplexity int) int
 	}
 
+	FilesResponse struct {
+		Files           func(childComplexity int) int
+		HasNextPage     func(childComplexity int) int
+		HasPreviousPage func(childComplexity int) int
+		TotalCount      func(childComplexity int) int
+	}
+
 	Folder struct {
 		ChildrenFiles   func(childComplexity int) int
 		ChildrenFolders func(childComplexity int) int
@@ -83,6 +90,13 @@ type ComplexityRoot struct {
 		ParentID        func(childComplexity int) int
 		Path            func(childComplexity int) int
 		RealPath        func(childComplexity int) int
+	}
+
+	FoldersResponse struct {
+		Folders         func(childComplexity int) int
+		HasNextPage     func(childComplexity int) int
+		HasPreviousPage func(childComplexity int) int
+		TotalCount      func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -117,12 +131,16 @@ type ComplexityRoot struct {
 	Query struct {
 		GetFile            func(childComplexity int, fileID string, publicToken *string) int
 		GetFileShares      func(childComplexity int, fileID string) int
+		GetFiles           func(childComplexity int, filter *model.FileFilter, sort *model.FileSort, pagination *model.PaginationInput, folderID *string, publicToken *string) int
 		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string) int
 		GetFolderDetails   func(childComplexity int, folderID string, publicToken *string) int
 		GetFolderShares    func(childComplexity int, folderID string) int
+		GetFolders         func(childComplexity int, filter *model.FolderFilter, sort *model.FolderSort, pagination *model.PaginationInput, parentID *string, publicToken *string) int
 		GetFoldersInFolder func(childComplexity int, folderID *string, publicToken *string) int
 		GetMyShares        func(childComplexity int) int
 		Me                 func(childComplexity int) int
+		SearchFiles        func(childComplexity int, query string, filter *model.FileFilter, sort *model.FileSort, pagination *model.PaginationInput, publicToken *string) int
+		SearchFolders      func(childComplexity int, query string, filter *model.FolderFilter, sort *model.FolderSort, pagination *model.PaginationInput, publicToken *string) int
 	}
 
 	Share struct {
@@ -254,6 +272,34 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.File.UploadDate(childComplexity), true
 
+	case "FilesResponse.files":
+		if e.complexity.FilesResponse.Files == nil {
+			break
+		}
+
+		return e.complexity.FilesResponse.Files(childComplexity), true
+
+	case "FilesResponse.hasNextPage":
+		if e.complexity.FilesResponse.HasNextPage == nil {
+			break
+		}
+
+		return e.complexity.FilesResponse.HasNextPage(childComplexity), true
+
+	case "FilesResponse.hasPreviousPage":
+		if e.complexity.FilesResponse.HasPreviousPage == nil {
+			break
+		}
+
+		return e.complexity.FilesResponse.HasPreviousPage(childComplexity), true
+
+	case "FilesResponse.totalCount":
+		if e.complexity.FilesResponse.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.FilesResponse.TotalCount(childComplexity), true
+
 	case "Folder.childrenFiles":
 		if e.complexity.Folder.ChildrenFiles == nil {
 			break
@@ -309,6 +355,34 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Folder.RealPath(childComplexity), true
+
+	case "FoldersResponse.folders":
+		if e.complexity.FoldersResponse.Folders == nil {
+			break
+		}
+
+		return e.complexity.FoldersResponse.Folders(childComplexity), true
+
+	case "FoldersResponse.hasNextPage":
+		if e.complexity.FoldersResponse.HasNextPage == nil {
+			break
+		}
+
+		return e.complexity.FoldersResponse.HasNextPage(childComplexity), true
+
+	case "FoldersResponse.hasPreviousPage":
+		if e.complexity.FoldersResponse.HasPreviousPage == nil {
+			break
+		}
+
+		return e.complexity.FoldersResponse.HasPreviousPage(childComplexity), true
+
+	case "FoldersResponse.totalCount":
+		if e.complexity.FoldersResponse.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.FoldersResponse.TotalCount(childComplexity), true
 
 	case "Mutation.confirmUploads":
 		if e.complexity.Mutation.ConfirmUploads == nil {
@@ -549,6 +623,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.GetFileShares(childComplexity, args["fileId"].(string)), true
 
+	case "Query.getFiles":
+		if e.complexity.Query.GetFiles == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFiles_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetFiles(childComplexity, args["filter"].(*model.FileFilter), args["sort"].(*model.FileSort), args["pagination"].(*model.PaginationInput), args["folderId"].(*string), args["publicToken"].(*string)), true
+
 	case "Query.getFilesInFolder":
 		if e.complexity.Query.GetFilesInFolder == nil {
 			break
@@ -585,6 +671,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.GetFolderShares(childComplexity, args["folderId"].(string)), true
 
+	case "Query.getFolders":
+		if e.complexity.Query.GetFolders == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFolders_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetFolders(childComplexity, args["filter"].(*model.FolderFilter), args["sort"].(*model.FolderSort), args["pagination"].(*model.PaginationInput), args["parentId"].(*string), args["publicToken"].(*string)), true
+
 	case "Query.getFoldersInFolder":
 		if e.complexity.Query.GetFoldersInFolder == nil {
 			break
@@ -610,6 +708,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
+
+	case "Query.searchFiles":
+		if e.complexity.Query.SearchFiles == nil {
+			break
+		}
+
+		args, err := ec.field_Query_searchFiles_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SearchFiles(childComplexity, args["query"].(string), args["filter"].(*model.FileFilter), args["sort"].(*model.FileSort), args["pagination"].(*model.PaginationInput), args["publicToken"].(*string)), true
+
+	case "Query.searchFolders":
+		if e.complexity.Query.SearchFolders == nil {
+			break
+		}
+
+		args, err := ec.field_Query_searchFolders_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SearchFolders(childComplexity, args["query"].(string), args["filter"].(*model.FolderFilter), args["sort"].(*model.FolderSort), args["pagination"].(*model.PaginationInput), args["publicToken"].(*string)), true
 
 	case "Share.createdAt":
 		if e.complexity.Share.CreatedAt == nil {
@@ -704,7 +826,12 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputConfirmUploadInput,
+		ec.unmarshalInputFileFilter,
+		ec.unmarshalInputFileSort,
+		ec.unmarshalInputFolderFilter,
+		ec.unmarshalInputFolderSort,
 		ec.unmarshalInputLoginUser,
+		ec.unmarshalInputPaginationInput,
 		ec.unmarshalInputPreUploadFileInput,
 		ec.unmarshalInputRegisterUser,
 	)
@@ -834,6 +961,80 @@ type Folder {
   childrenFiles: [File!]!
 }
 
+# Enums for sorting
+enum FileSortField {
+  FILENAME
+  MIME_TYPE
+  SIZE
+  UPLOAD_DATE
+}
+
+enum FolderSortField {
+  NAME
+  CREATED_AT
+  PATH
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+# Filter inputs
+input FileFilter {
+  filename: String # Contains search (case-insensitive)
+  mimeType: String # Contains search for MIME type
+  # Size filters
+  minSize: Int
+  maxSize: Int
+  # Date filters
+  uploadedAfter: Time
+  uploadedBefore: Time
+}
+
+input FolderFilter {
+  name: String # Contains search (case-insensitive)
+  path: String # Contains search in path
+  # Date filters
+  createdAfter: Time
+  createdBefore: Time
+  # Parent folder filter
+  parentID: ID
+}
+
+# Sort inputs
+input FileSort {
+  field: FileSortField!
+  direction: SortDirection!
+}
+
+input FolderSort {
+  field: FolderSortField!
+  direction: SortDirection!
+}
+
+# Pagination
+input PaginationInput {
+  limit: Int = 20
+  offset: Int = 0
+}
+
+# Response types with pagination info
+type FilesResponse {
+  files: [File!]!
+  totalCount: Int!
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+type FoldersResponse {
+  folders: [Folder!]!
+  totalCount: Int!
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+# Existing types
 type PreSignedURL {
   filename: String!
   hash: String!
@@ -876,9 +1077,45 @@ type ConfirmUploadsResponse {
 
 extend type Query {
   getFile(fileId: ID!, publicToken: String): File
+
+  getFiles(
+    filter: FileFilter
+    sort: FileSort
+    pagination: PaginationInput
+    folderId: ID
+    publicToken: String
+  ): FilesResponse!
+
+  getFolders(
+    filter: FolderFilter
+    sort: FolderSort
+    pagination: PaginationInput
+    parentId: ID
+    publicToken: String
+  ): FoldersResponse!
+
+  getFolderDetails(folderId: ID!, publicToken: String): Folder
+
+  # Search functionality
+  searchFiles(
+    query: String!
+    filter: FileFilter
+    sort: FileSort
+    pagination: PaginationInput
+    publicToken: String
+  ): FilesResponse!
+
+  searchFolders(
+    query: String!
+    filter: FolderFilter
+    sort: FolderSort
+    pagination: PaginationInput
+    publicToken: String
+  ): FoldersResponse!
+
+  # Legacy queries for backward compatibility
   getFilesInFolder(folderId: ID, publicToken: String): [File!]!
   getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]!
-  getFolderDetails(folderId: ID!, publicToken: String): Folder
 }
 
 extend type Mutation {

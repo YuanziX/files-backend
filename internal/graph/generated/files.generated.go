@@ -47,9 +47,13 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	GetFile(ctx context.Context, fileID string, publicToken *string) (*model.File, error)
+	GetFiles(ctx context.Context, filter *model.FileFilter, sort *model.FileSort, pagination *model.PaginationInput, folderID *string, publicToken *string) (*model.FilesResponse, error)
+	GetFolders(ctx context.Context, filter *model.FolderFilter, sort *model.FolderSort, pagination *model.PaginationInput, parentID *string, publicToken *string) (*model.FoldersResponse, error)
+	GetFolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error)
+	SearchFiles(ctx context.Context, query string, filter *model.FileFilter, sort *model.FileSort, pagination *model.PaginationInput, publicToken *string) (*model.FilesResponse, error)
+	SearchFolders(ctx context.Context, query string, filter *model.FolderFilter, sort *model.FolderSort, pagination *model.PaginationInput, publicToken *string) (*model.FoldersResponse, error)
 	GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*model.File, error)
 	GetFoldersInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*postgres.Folder, error)
-	GetFolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error)
 	GetFileShares(ctx context.Context, fileID string) ([]*postgres.Share, error)
 	GetFolderShares(ctx context.Context, folderID string) ([]*postgres.Share, error)
 	GetMyShares(ctx context.Context) ([]*postgres.Share, error)
@@ -309,6 +313,37 @@ func (ec *executionContext) field_Query_getFilesInFolder_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_getFiles_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOFileFilter2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileFilter)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "sort", ec.unmarshalOFileSort2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSort)
+	if err != nil {
+		return nil, err
+	}
+	args["sort"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "pagination", ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐPaginationInput)
+	if err != nil {
+		return nil, err
+	}
+	args["pagination"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "folderId", ec.unmarshalOID2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["folderId"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "publicToken", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["publicToken"] = arg4
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_getFolderDetails_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -349,6 +384,99 @@ func (ec *executionContext) field_Query_getFoldersInFolder_args(ctx context.Cont
 		return nil, err
 	}
 	args["publicToken"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getFolders_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOFolderFilter2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderFilter)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "sort", ec.unmarshalOFolderSort2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSort)
+	if err != nil {
+		return nil, err
+	}
+	args["sort"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "pagination", ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐPaginationInput)
+	if err != nil {
+		return nil, err
+	}
+	args["pagination"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "parentId", ec.unmarshalOID2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["parentId"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "publicToken", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["publicToken"] = arg4
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_searchFiles_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "query", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["query"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOFileFilter2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileFilter)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "sort", ec.unmarshalOFileSort2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSort)
+	if err != nil {
+		return nil, err
+	}
+	args["sort"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "pagination", ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐPaginationInput)
+	if err != nil {
+		return nil, err
+	}
+	args["pagination"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "publicToken", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["publicToken"] = arg4
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_searchFolders_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "query", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["query"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOFolderFilter2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderFilter)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "sort", ec.unmarshalOFolderSort2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSort)
+	if err != nil {
+		return nil, err
+	}
+	args["sort"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "pagination", ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐPaginationInput)
+	if err != nil {
+		return nil, err
+	}
+	args["pagination"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "publicToken", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["publicToken"] = arg4
 	return args, nil
 }
 
@@ -697,6 +825,134 @@ func (ec *executionContext) fieldContext_File_uploadDate(_ context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _FilesResponse_files(ctx context.Context, field graphql.CollectedField, obj *model.FilesResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FilesResponse_files,
+		func(ctx context.Context) (any, error) {
+			return obj.Files, nil
+		},
+		nil,
+		ec.marshalNFile2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FilesResponse_files(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FilesResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_File_id(ctx, field)
+			case "filename":
+				return ec.fieldContext_File_filename(ctx, field)
+			case "mimeType":
+				return ec.fieldContext_File_mimeType(ctx, field)
+			case "size":
+				return ec.fieldContext_File_size(ctx, field)
+			case "uploadDate":
+				return ec.fieldContext_File_uploadDate(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FilesResponse_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.FilesResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FilesResponse_totalCount,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FilesResponse_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FilesResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FilesResponse_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *model.FilesResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FilesResponse_hasNextPage,
+		func(ctx context.Context) (any, error) {
+			return obj.HasNextPage, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FilesResponse_hasNextPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FilesResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FilesResponse_hasPreviousPage(ctx context.Context, field graphql.CollectedField, obj *model.FilesResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FilesResponse_hasPreviousPage,
+		func(ctx context.Context) (any, error) {
+			return obj.HasPreviousPage, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FilesResponse_hasPreviousPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FilesResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Folder_id(ctx context.Context, field graphql.CollectedField, obj *postgres.Folder) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -954,6 +1210,140 @@ func (ec *executionContext) fieldContext_Folder_childrenFiles(_ context.Context,
 				return ec.fieldContext_File_uploadDate(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FoldersResponse_folders(ctx context.Context, field graphql.CollectedField, obj *model.FoldersResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FoldersResponse_folders,
+		func(ctx context.Context) (any, error) {
+			return obj.Folders, nil
+		},
+		nil,
+		ec.marshalNFolder2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolderᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FoldersResponse_folders(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FoldersResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Folder_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Folder_name(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Folder_createdAt(ctx, field)
+			case "parentID":
+				return ec.fieldContext_Folder_parentID(ctx, field)
+			case "path":
+				return ec.fieldContext_Folder_path(ctx, field)
+			case "realPath":
+				return ec.fieldContext_Folder_realPath(ctx, field)
+			case "childrenFolders":
+				return ec.fieldContext_Folder_childrenFolders(ctx, field)
+			case "childrenFiles":
+				return ec.fieldContext_Folder_childrenFiles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FoldersResponse_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.FoldersResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FoldersResponse_totalCount,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FoldersResponse_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FoldersResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FoldersResponse_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *model.FoldersResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FoldersResponse_hasNextPage,
+		func(ctx context.Context) (any, error) {
+			return obj.HasNextPage, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FoldersResponse_hasNextPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FoldersResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FoldersResponse_hasPreviousPage(ctx context.Context, field graphql.CollectedField, obj *model.FoldersResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FoldersResponse_hasPreviousPage,
+		func(ctx context.Context) (any, error) {
+			return obj.HasPreviousPage, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FoldersResponse_hasPreviousPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FoldersResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2009,6 +2399,269 @@ func (ec *executionContext) fieldContext_Query_getFile(ctx context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_getFiles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_getFiles,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().GetFiles(ctx, fc.Args["filter"].(*model.FileFilter), fc.Args["sort"].(*model.FileSort), fc.Args["pagination"].(*model.PaginationInput), fc.Args["folderId"].(*string), fc.Args["publicToken"].(*string))
+		},
+		nil,
+		ec.marshalNFilesResponse2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFilesResponse,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_getFiles(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "files":
+				return ec.fieldContext_FilesResponse_files(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_FilesResponse_totalCount(ctx, field)
+			case "hasNextPage":
+				return ec.fieldContext_FilesResponse_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_FilesResponse_hasPreviousPage(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FilesResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getFiles_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getFolders(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_getFolders,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().GetFolders(ctx, fc.Args["filter"].(*model.FolderFilter), fc.Args["sort"].(*model.FolderSort), fc.Args["pagination"].(*model.PaginationInput), fc.Args["parentId"].(*string), fc.Args["publicToken"].(*string))
+		},
+		nil,
+		ec.marshalNFoldersResponse2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFoldersResponse,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_getFolders(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "folders":
+				return ec.fieldContext_FoldersResponse_folders(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_FoldersResponse_totalCount(ctx, field)
+			case "hasNextPage":
+				return ec.fieldContext_FoldersResponse_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_FoldersResponse_hasPreviousPage(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FoldersResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getFolders_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getFolderDetails(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_getFolderDetails,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().GetFolderDetails(ctx, fc.Args["folderId"].(string), fc.Args["publicToken"].(*string))
+		},
+		nil,
+		ec.marshalOFolder2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolder,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_getFolderDetails(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Folder_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Folder_name(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Folder_createdAt(ctx, field)
+			case "parentID":
+				return ec.fieldContext_Folder_parentID(ctx, field)
+			case "path":
+				return ec.fieldContext_Folder_path(ctx, field)
+			case "realPath":
+				return ec.fieldContext_Folder_realPath(ctx, field)
+			case "childrenFolders":
+				return ec.fieldContext_Folder_childrenFolders(ctx, field)
+			case "childrenFiles":
+				return ec.fieldContext_Folder_childrenFiles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getFolderDetails_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_searchFiles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_searchFiles,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().SearchFiles(ctx, fc.Args["query"].(string), fc.Args["filter"].(*model.FileFilter), fc.Args["sort"].(*model.FileSort), fc.Args["pagination"].(*model.PaginationInput), fc.Args["publicToken"].(*string))
+		},
+		nil,
+		ec.marshalNFilesResponse2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFilesResponse,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_searchFiles(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "files":
+				return ec.fieldContext_FilesResponse_files(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_FilesResponse_totalCount(ctx, field)
+			case "hasNextPage":
+				return ec.fieldContext_FilesResponse_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_FilesResponse_hasPreviousPage(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FilesResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_searchFiles_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_searchFolders(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_searchFolders,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().SearchFolders(ctx, fc.Args["query"].(string), fc.Args["filter"].(*model.FolderFilter), fc.Args["sort"].(*model.FolderSort), fc.Args["pagination"].(*model.PaginationInput), fc.Args["publicToken"].(*string))
+		},
+		nil,
+		ec.marshalNFoldersResponse2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFoldersResponse,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_searchFolders(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "folders":
+				return ec.fieldContext_FoldersResponse_folders(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_FoldersResponse_totalCount(ctx, field)
+			case "hasNextPage":
+				return ec.fieldContext_FoldersResponse_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_FoldersResponse_hasPreviousPage(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FoldersResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_searchFolders_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getFilesInFolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2115,65 +2768,6 @@ func (ec *executionContext) fieldContext_Query_getFoldersInFolder(ctx context.Co
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_getFoldersInFolder_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_getFolderDetails(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_getFolderDetails,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().GetFolderDetails(ctx, fc.Args["folderId"].(string), fc.Args["publicToken"].(*string))
-		},
-		nil,
-		ec.marshalOFolder2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolder,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_getFolderDetails(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Folder_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Folder_name(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Folder_createdAt(ctx, field)
-			case "parentID":
-				return ec.fieldContext_Folder_parentID(ctx, field)
-			case "path":
-				return ec.fieldContext_Folder_path(ctx, field)
-			case "realPath":
-				return ec.fieldContext_Folder_realPath(ctx, field)
-			case "childrenFolders":
-				return ec.fieldContext_Folder_childrenFolders(ctx, field)
-			case "childrenFiles":
-				return ec.fieldContext_Folder_childrenFiles(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_getFolderDetails_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -2599,6 +3193,232 @@ func (ec *executionContext) unmarshalInputConfirmUploadInput(ctx context.Context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputFileFilter(ctx context.Context, obj any) (model.FileFilter, error) {
+	var it model.FileFilter
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"filename", "mimeType", "minSize", "maxSize", "uploadedAfter", "uploadedBefore"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "filename":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filename"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Filename = data
+		case "mimeType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mimeType"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MimeType = data
+		case "minSize":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minSize"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinSize = data
+		case "maxSize":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxSize"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxSize = data
+		case "uploadedAfter":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uploadedAfter"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UploadedAfter = data
+		case "uploadedBefore":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uploadedBefore"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UploadedBefore = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFileSort(ctx context.Context, obj any) (model.FileSort, error) {
+	var it model.FileSort
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"field", "direction"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "field":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			data, err := ec.unmarshalNFileSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSortField(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Field = data
+		case "direction":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
+			data, err := ec.unmarshalNSortDirection2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐSortDirection(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Direction = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFolderFilter(ctx context.Context, obj any) (model.FolderFilter, error) {
+	var it model.FolderFilter
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "path", "createdAfter", "createdBefore", "parentID"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "path":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("path"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Path = data
+		case "createdAfter":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdAfter"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreatedAfter = data
+		case "createdBefore":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdBefore"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreatedBefore = data
+		case "parentID":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("parentID"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ParentID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFolderSort(ctx context.Context, obj any) (model.FolderSort, error) {
+	var it model.FolderSort
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"field", "direction"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "field":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			data, err := ec.unmarshalNFolderSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSortField(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Field = data
+		case "direction":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
+			data, err := ec.unmarshalNSortDirection2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐSortDirection(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Direction = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputPaginationInput(ctx context.Context, obj any) (model.PaginationInput, error) {
+	var it model.PaginationInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["limit"]; !present {
+		asMap["limit"] = 20
+	}
+	if _, present := asMap["offset"]; !present {
+		asMap["offset"] = 0
+	}
+
+	fieldsInOrder := [...]string{"limit", "offset"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "limit":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Limit = data
+		case "offset":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Offset = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPreUploadFileInput(ctx context.Context, obj any) (model.PreUploadFileInput, error) {
 	var it model.PreUploadFileInput
 	asMap := map[string]any{}
@@ -2839,6 +3659,60 @@ func (ec *executionContext) _File(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var filesResponseImplementors = []string{"FilesResponse"}
+
+func (ec *executionContext) _FilesResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FilesResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, filesResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FilesResponse")
+		case "files":
+			out.Values[i] = ec._FilesResponse_files(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._FilesResponse_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasNextPage":
+			out.Values[i] = ec._FilesResponse_hasNextPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasPreviousPage":
+			out.Values[i] = ec._FilesResponse_hasPreviousPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var folderImplementors = []string{"Folder"}
 
 func (ec *executionContext) _Folder(ctx context.Context, sel ast.SelectionSet, obj *postgres.Folder) graphql.Marshaler {
@@ -3042,6 +3916,60 @@ func (ec *executionContext) _Folder(ctx context.Context, sel ast.SelectionSet, o
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var foldersResponseImplementors = []string{"FoldersResponse"}
+
+func (ec *executionContext) _FoldersResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FoldersResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, foldersResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FoldersResponse")
+		case "folders":
+			out.Values[i] = ec._FoldersResponse_folders(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._FoldersResponse_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasNextPage":
+			out.Values[i] = ec._FoldersResponse_hasNextPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasPreviousPage":
+			out.Values[i] = ec._FoldersResponse_hasPreviousPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3343,6 +4271,113 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getFiles":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getFiles(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getFolders":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getFolders(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getFolderDetails":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getFolderDetails(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "searchFiles":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_searchFiles(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "searchFolders":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_searchFolders(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "getFilesInFolder":
 			field := field
 
@@ -3378,25 +4413,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "getFolderDetails":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_getFolderDetails(ctx, field)
 				return res
 			}
 
@@ -3685,6 +4701,30 @@ func (ec *executionContext) marshalNFile2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbac
 	return ec._File(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFileSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSortField(ctx context.Context, v any) (model.FileSortField, error) {
+	var res model.FileSortField
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFileSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSortField(ctx context.Context, sel ast.SelectionSet, v model.FileSortField) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNFilesResponse2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFilesResponse(ctx context.Context, sel ast.SelectionSet, v model.FilesResponse) graphql.Marshaler {
+	return ec._FilesResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFilesResponse2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFilesResponse(ctx context.Context, sel ast.SelectionSet, v *model.FilesResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FilesResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNFolder2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolder(ctx context.Context, sel ast.SelectionSet, v postgres.Folder) graphql.Marshaler {
 	return ec._Folder(ctx, sel, &v)
 }
@@ -3741,6 +4781,30 @@ func (ec *executionContext) marshalNFolder2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑb
 		return graphql.Null
 	}
 	return ec._Folder(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFolderSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSortField(ctx context.Context, v any) (model.FolderSortField, error) {
+	var res model.FolderSortField
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFolderSortField2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSortField(ctx context.Context, sel ast.SelectionSet, v model.FolderSortField) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNFoldersResponse2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFoldersResponse(ctx context.Context, sel ast.SelectionSet, v model.FoldersResponse) graphql.Marshaler {
+	return ec._FoldersResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFoldersResponse2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFoldersResponse(ctx context.Context, sel ast.SelectionSet, v *model.FoldersResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FoldersResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNPreSignedURL2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐPreSignedURLᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PreSignedURL) graphql.Marshaler {
@@ -3831,6 +4895,16 @@ func (ec *executionContext) unmarshalNPreUploadFileInput2ᚖgithubᚗcomᚋYuanz
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNSortDirection2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐSortDirection(ctx context.Context, v any) (model.SortDirection, error) {
+	var res model.SortDirection
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSortDirection2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐSortDirection(ctx context.Context, sel ast.SelectionSet, v model.SortDirection) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v any) (time.Time, error) {
 	res, err := graphql.UnmarshalTime(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3876,11 +4950,69 @@ func (ec *executionContext) marshalOFile2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbac
 	return ec._File(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOFileFilter2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileFilter(ctx context.Context, v any) (*model.FileFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFileFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOFileSort2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileSort(ctx context.Context, v any) (*model.FileSort, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFileSort(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalOFolder2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolder(ctx context.Context, sel ast.SelectionSet, v *postgres.Folder) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Folder(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOFolderFilter2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderFilter(ctx context.Context, v any) (*model.FolderFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFolderFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOFolderSort2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFolderSort(ctx context.Context, v any) (*model.FolderSort, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFolderSort(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOPaginationInput2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐPaginationInput(ctx context.Context, v any) (*model.PaginationInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPaginationInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalTime(*v)
+	return res
 }
 
 // endregion ***************************** type.gotpl *****************************

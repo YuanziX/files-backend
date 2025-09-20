@@ -470,6 +470,616 @@ func (r *queryResolver) GetFile(ctx context.Context, fileID string, publicToken 
 	return nil, fmt.Errorf("permission denied")
 }
 
+// GetFiles is the resolver for the getFiles field.
+func (r *queryResolver) GetFiles(ctx context.Context, filter *model.FileFilter, sort *model.FileSort, pagination *model.PaginationInput, folderID *string, publicToken *string) (*model.FilesResponse, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid && publicToken == nil {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	// Set default pagination
+	limit := 20
+	offset := 0
+	if pagination != nil {
+		if pagination.Limit != nil {
+			limit = int(*pagination.Limit)
+		}
+		if pagination.Offset != nil {
+			offset = int(*pagination.Offset)
+		}
+	}
+
+	// Build the base query
+	var baseQuery string
+	var args []interface{}
+	argIndex := 1
+
+	if folderID != nil {
+		// Get files in specific folder
+		folderUUID := utils.GetPgUUID(folderID)
+		if !folderUUID.Valid {
+			return nil, fmt.Errorf("invalid folderId")
+		}
+
+		// Check folder access
+		requestedFolder, err := r.DB.GetFolderByID(ctx, folderUUID)
+		if err != nil {
+			return nil, fmt.Errorf("folder not found")
+		}
+
+		canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
+			ID:               requestedFolder.ID,
+			PublicToken:      utils.GetPgString(publicToken),
+			SharedWithUserID: userID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error checking folder access: %w", err)
+		}
+
+		if (requestedFolder.OwnerID != userID) && !canAccessFolder {
+			return nil, fmt.Errorf("permission denied")
+		}
+
+		baseQuery = `
+			SELECT f.id, f.filename, f.upload_date, pf.mime_type, pf.size_bytes
+			FROM files f
+			JOIN physical_files pf ON f.physical_file_id = pf.id
+			WHERE f.folder_id = $1`
+		args = append(args, folderUUID)
+		argIndex++
+	} else {
+		// Get root files for user
+		baseQuery = `
+			SELECT f.id, f.filename, f.upload_date, pf.mime_type, pf.size_bytes
+			FROM files f
+			JOIN physical_files pf ON f.physical_file_id = pf.id
+			WHERE f.owner_id = $1 AND f.folder_id IS NULL`
+		args = append(args, userID)
+		argIndex++
+	}
+
+	// Apply filters
+	if filter != nil {
+		if filter.Filename != nil {
+			baseQuery += fmt.Sprintf(" AND f.filename ILIKE $%d", argIndex)
+			args = append(args, "%"+*filter.Filename+"%")
+			argIndex++
+		}
+
+		if filter.MimeType != nil {
+			baseQuery += fmt.Sprintf(" AND pf.mime_type ILIKE $%d", argIndex)
+			args = append(args, "%"+*filter.MimeType+"%")
+			argIndex++
+		}
+
+		if filter.MinSize != nil {
+			baseQuery += fmt.Sprintf(" AND pf.size_bytes >= $%d", argIndex)
+			args = append(args, *filter.MinSize)
+			argIndex++
+		}
+
+		if filter.MaxSize != nil {
+			baseQuery += fmt.Sprintf(" AND pf.size_bytes <= $%d", argIndex)
+			args = append(args, *filter.MaxSize)
+			argIndex++
+		}
+
+		if filter.UploadedAfter != nil {
+			baseQuery += fmt.Sprintf(" AND f.upload_date > $%d", argIndex)
+			args = append(args, *filter.UploadedAfter)
+			argIndex++
+		}
+
+		if filter.UploadedBefore != nil {
+			baseQuery += fmt.Sprintf(" AND f.upload_date < $%d", argIndex)
+			args = append(args, *filter.UploadedBefore)
+			argIndex++
+		}
+	}
+
+	// Apply sorting
+	orderBy := "ORDER BY f.filename ASC" // default
+	if sort != nil {
+		direction := "ASC"
+		if sort.Direction == model.SortDirectionDesc {
+			direction = "DESC"
+		}
+
+		switch sort.Field {
+		case model.FileSortFieldFilename:
+			orderBy = fmt.Sprintf("ORDER BY f.filename %s", direction)
+		case model.FileSortFieldSize:
+			orderBy = fmt.Sprintf("ORDER BY pf.size_bytes %s", direction)
+		case model.FileSortFieldUploadDate:
+			orderBy = fmt.Sprintf("ORDER BY f.upload_date %s", direction)
+		case model.FileSortFieldMimeType:
+			orderBy = fmt.Sprintf("ORDER BY pf.mime_type %s", direction)
+		}
+	}
+
+	// Get total count first (without limit/offset)
+	countQuery := strings.Replace(baseQuery, "SELECT f.id, f.filename, f.upload_date, pf.mime_type, pf.size_bytes", "SELECT COUNT(*)", 1)
+
+	var totalCount int64
+	err := r.DBPool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total count: %w", err)
+	}
+
+	// Add pagination
+	finalQuery := fmt.Sprintf("%s %s LIMIT $%d OFFSET $%d", baseQuery, orderBy, argIndex, argIndex+1)
+	args = append(args, limit, offset)
+
+	// Execute query
+	rows, err := r.DBPool.Query(ctx, finalQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	var files []*model.File
+	for rows.Next() {
+		var fileID pgtype.UUID
+		var filename string
+		var uploadDate pgtype.Timestamptz
+		var mimeType string
+		var sizeBytes int64
+
+		err := rows.Scan(&fileID, &filename, &uploadDate, &mimeType, &sizeBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		files = append(files, &model.File{
+			ID:         fileID.String(),
+			Filename:   filename,
+			UploadDate: uploadDate.Time,
+			MimeType:   mimeType,
+			Size:       int32(sizeBytes),
+		})
+	}
+
+	return &model.FilesResponse{
+		Files:           files,
+		TotalCount:      int32(totalCount),
+		HasNextPage:     int64(offset+limit) < totalCount,
+		HasPreviousPage: offset > 0,
+	}, nil
+}
+
+// GetFolders is the resolver for the getFolders field.
+func (r *queryResolver) GetFolders(ctx context.Context, filter *model.FolderFilter, sort *model.FolderSort, pagination *model.PaginationInput, parentID *string, publicToken *string) (*model.FoldersResponse, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid && publicToken == nil {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	// Set default pagination
+	limit := 20
+	offset := 0
+	if pagination != nil {
+		if pagination.Limit != nil {
+			limit = int(*pagination.Limit)
+		}
+		if pagination.Offset != nil {
+			offset = int(*pagination.Offset)
+		}
+	}
+
+	// Build the base query
+	var baseQuery string
+	var args []interface{}
+	argIndex := 1
+
+	if parentID != nil {
+		// Get subfolders
+		parentUUID := utils.GetPgUUID(parentID)
+		if !parentUUID.Valid {
+			return nil, fmt.Errorf("invalid parentId")
+		}
+
+		// Check parent folder access
+		requestedFolder, err := r.DB.GetFolderByID(ctx, parentUUID)
+		if err != nil {
+			return nil, fmt.Errorf("parent folder not found")
+		}
+
+		canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
+			ID:               requestedFolder.ID,
+			PublicToken:      utils.GetPgString(publicToken),
+			SharedWithUserID: userID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error checking folder access: %w", err)
+		}
+
+		if (requestedFolder.OwnerID != userID) && !canAccessFolder {
+			return nil, fmt.Errorf("permission denied")
+		}
+
+		baseQuery = `SELECT id, name, created_at, parent_id, path, real_path, owner_id FROM folders WHERE parent_id = $1`
+		args = append(args, parentUUID)
+		argIndex++
+	} else {
+		// Get root folders for user
+		baseQuery = `SELECT id, name, created_at, parent_id, path, real_path, owner_id FROM folders WHERE owner_id = $1 AND parent_id IS NULL`
+		args = append(args, userID)
+		argIndex++
+	}
+
+	// Apply filters
+	if filter != nil {
+		if filter.Name != nil {
+			baseQuery += fmt.Sprintf(" AND name ILIKE $%d", argIndex)
+			args = append(args, "%"+*filter.Name+"%")
+			argIndex++
+		}
+
+		if filter.Path != nil {
+			baseQuery += fmt.Sprintf(" AND path::text ILIKE $%d", argIndex)
+			args = append(args, "%"+*filter.Path+"%")
+			argIndex++
+		}
+
+		if filter.CreatedAfter != nil {
+			baseQuery += fmt.Sprintf(" AND created_at > $%d", argIndex)
+			args = append(args, *filter.CreatedAfter)
+			argIndex++
+		}
+
+		if filter.CreatedBefore != nil {
+			baseQuery += fmt.Sprintf(" AND created_at < $%d", argIndex)
+			args = append(args, *filter.CreatedBefore)
+			argIndex++
+		}
+
+		if filter.ParentID != nil {
+			parentUUID := utils.GetPgUUID(filter.ParentID)
+			if parentUUID.Valid {
+				baseQuery += fmt.Sprintf(" AND parent_id = $%d", argIndex)
+				args = append(args, parentUUID)
+				argIndex++
+			}
+		}
+	}
+
+	// Apply sorting
+	orderBy := "ORDER BY name ASC" // default
+	if sort != nil {
+		direction := "ASC"
+		if sort.Direction == model.SortDirectionDesc {
+			direction = "DESC"
+		}
+
+		switch sort.Field {
+		case model.FolderSortFieldName:
+			orderBy = fmt.Sprintf("ORDER BY name %s", direction)
+		case model.FolderSortFieldCreatedAt:
+			orderBy = fmt.Sprintf("ORDER BY created_at %s", direction)
+		case model.FolderSortFieldPath:
+			orderBy = fmt.Sprintf("ORDER BY path %s", direction)
+		}
+	}
+
+	// Get total count first
+	countQuery := strings.Replace(baseQuery, "SELECT id, name, created_at, parent_id, path, real_path, owner_id", "SELECT COUNT(*)", 1)
+
+	var totalCount int64
+	err := r.DBPool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total count: %w", err)
+	}
+
+	// Add pagination
+	finalQuery := fmt.Sprintf("%s %s LIMIT $%d OFFSET $%d", baseQuery, orderBy, argIndex, argIndex+1)
+	args = append(args, limit, offset)
+
+	// Execute query
+	rows, err := r.DBPool.Query(ctx, finalQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	var folders []*postgres.Folder
+	for rows.Next() {
+		var folder postgres.Folder
+		err := rows.Scan(&folder.ID, &folder.Name, &folder.CreatedAt, &folder.ParentID, &folder.Path, &folder.RealPath, &folder.OwnerID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		folders = append(folders, &folder)
+	}
+
+	return &model.FoldersResponse{
+		Folders:         folders,
+		TotalCount:      int32(totalCount),
+		HasNextPage:     int64(offset+limit) < totalCount,
+		HasPreviousPage: offset > 0,
+	}, nil
+}
+
+// GetFolderDetails is the resolver for the getFolderDetails field.
+func (r *queryResolver) GetFolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid && publicToken == nil {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	folderUUID := utils.GetPgUUID(&folderID)
+	if !folderUUID.Valid {
+		return nil, fmt.Errorf("invalid folderId")
+	}
+
+	folder, err := r.DB.GetFolderByID(ctx, folderUUID)
+	if err != nil {
+		return nil, fmt.Errorf("folder not found")
+	}
+
+	canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
+		ID:               folder.ID,
+		PublicToken:      utils.GetPgString(publicToken),
+		SharedWithUserID: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error checking folder access: %w", err)
+	}
+
+	if (folder.OwnerID != userID) && !canAccessFolder {
+		return nil, fmt.Errorf("permission denied")
+	}
+
+	return &folder, nil
+}
+
+// SearchFiles is the resolver for the searchFiles field.
+func (r *queryResolver) SearchFiles(ctx context.Context, query string, filter *model.FileFilter, sort *model.FileSort, pagination *model.PaginationInput, publicToken *string) (*model.FilesResponse, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid && publicToken == nil {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	// Set default pagination
+	limit := 20
+	offset := 0
+	if pagination != nil {
+		if pagination.Limit != nil {
+			limit = int(*pagination.Limit)
+		}
+		if pagination.Offset != nil {
+			offset = int(*pagination.Offset)
+		}
+	}
+
+	// Build search query
+	baseQuery := `
+		SELECT f.id, f.filename, f.upload_date, pf.mime_type, pf.size_bytes
+		FROM files f
+		JOIN physical_files pf ON f.physical_file_id = pf.id
+		WHERE f.owner_id = $1 AND f.filename ILIKE $2`
+
+	args := []interface{}{userID, "%" + query + "%"}
+	argIndex := 3
+
+	// Apply additional filters
+	if filter != nil {
+		if filter.MimeType != nil {
+			baseQuery += fmt.Sprintf(" AND pf.mime_type ILIKE $%d", argIndex)
+			args = append(args, "%"+*filter.MimeType+"%")
+			argIndex++
+		}
+
+		if filter.MinSize != nil {
+			baseQuery += fmt.Sprintf(" AND pf.size_bytes >= $%d", argIndex)
+			args = append(args, *filter.MinSize)
+			argIndex++
+		}
+
+		if filter.MaxSize != nil {
+			baseQuery += fmt.Sprintf(" AND pf.size_bytes <= $%d", argIndex)
+			args = append(args, *filter.MaxSize)
+			argIndex++
+		}
+
+		if filter.UploadedAfter != nil {
+			baseQuery += fmt.Sprintf(" AND f.upload_date > $%d", argIndex)
+			args = append(args, *filter.UploadedAfter)
+			argIndex++
+		}
+
+		if filter.UploadedBefore != nil {
+			baseQuery += fmt.Sprintf(" AND f.upload_date < $%d", argIndex)
+			args = append(args, *filter.UploadedBefore)
+			argIndex++
+		}
+	}
+
+	// Apply sorting
+	orderBy := "ORDER BY f.filename ASC" // default
+	if sort != nil {
+		direction := "ASC"
+		if sort.Direction == model.SortDirectionDesc {
+			direction = "DESC"
+		}
+
+		switch sort.Field {
+		case model.FileSortFieldFilename:
+			orderBy = fmt.Sprintf("ORDER BY f.filename %s", direction)
+		case model.FileSortFieldSize:
+			orderBy = fmt.Sprintf("ORDER BY pf.size_bytes %s", direction)
+		case model.FileSortFieldUploadDate:
+			orderBy = fmt.Sprintf("ORDER BY f.upload_date %s", direction)
+		case model.FileSortFieldMimeType:
+			orderBy = fmt.Sprintf("ORDER BY pf.mime_type %s", direction)
+		}
+	}
+
+	// Get total count
+	countQuery := strings.Replace(baseQuery, "SELECT f.id, f.filename, f.upload_date, pf.mime_type, pf.size_bytes", "SELECT COUNT(*)", 1)
+
+	var totalCount int64
+	err := r.DBPool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total count: %w", err)
+	}
+
+	// Add pagination
+	finalQuery := fmt.Sprintf("%s %s LIMIT $%d OFFSET $%d", baseQuery, orderBy, argIndex, argIndex+1)
+	args = append(args, limit, offset)
+
+	// Execute query
+	rows, err := r.DBPool.Query(ctx, finalQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	var files []*model.File
+	for rows.Next() {
+		var fileID pgtype.UUID
+		var filename string
+		var uploadDate pgtype.Timestamptz
+		var mimeType string
+		var sizeBytes int64
+
+		err := rows.Scan(&fileID, &filename, &uploadDate, &mimeType, &sizeBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		files = append(files, &model.File{
+			ID:         fileID.String(),
+			Filename:   filename,
+			UploadDate: uploadDate.Time,
+			MimeType:   mimeType,
+			Size:       int32(sizeBytes),
+		})
+	}
+
+	return &model.FilesResponse{
+		Files:           files,
+		TotalCount:      int32(totalCount),
+		HasNextPage:     int64(offset+limit) < totalCount,
+		HasPreviousPage: offset > 0,
+	}, nil
+}
+
+// SearchFolders is the resolver for the searchFolders field.
+func (r *queryResolver) SearchFolders(ctx context.Context, query string, filter *model.FolderFilter, sort *model.FolderSort, pagination *model.PaginationInput, publicToken *string) (*model.FoldersResponse, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid && publicToken == nil {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	// Set default pagination
+	limit := 20
+	offset := 0
+	if pagination != nil {
+		if pagination.Limit != nil {
+			limit = int(*pagination.Limit)
+		}
+		if pagination.Offset != nil {
+			offset = int(*pagination.Offset)
+		}
+	}
+
+	// Build search query
+	baseQuery := `
+		SELECT id, name, created_at, parent_id, path, real_path, owner_id 
+		FROM folders 
+		WHERE owner_id = $1 AND name ILIKE $2`
+
+	args := []interface{}{userID, "%" + query + "%"}
+	argIndex := 3
+
+	// Apply additional filters
+	if filter != nil {
+		if filter.Path != nil {
+			baseQuery += fmt.Sprintf(" AND path::text ILIKE $%d", argIndex)
+			args = append(args, "%"+*filter.Path+"%")
+			argIndex++
+		}
+
+		if filter.CreatedAfter != nil {
+			baseQuery += fmt.Sprintf(" AND created_at > $%d", argIndex)
+			args = append(args, *filter.CreatedAfter)
+			argIndex++
+		}
+
+		if filter.CreatedBefore != nil {
+			baseQuery += fmt.Sprintf(" AND created_at < $%d", argIndex)
+			args = append(args, *filter.CreatedBefore)
+			argIndex++
+		}
+
+		if filter.ParentID != nil {
+			parentUUID := utils.GetPgUUID(filter.ParentID)
+			if parentUUID.Valid {
+				baseQuery += fmt.Sprintf(" AND parent_id = $%d", argIndex)
+				args = append(args, parentUUID)
+				argIndex++
+			}
+		}
+	}
+
+	// Apply sorting
+	orderBy := "ORDER BY name ASC" // default
+	if sort != nil {
+		direction := "ASC"
+		if sort.Direction == model.SortDirectionDesc {
+			direction = "DESC"
+		}
+
+		switch sort.Field {
+		case model.FolderSortFieldName:
+			orderBy = fmt.Sprintf("ORDER BY name %s", direction)
+		case model.FolderSortFieldCreatedAt:
+			orderBy = fmt.Sprintf("ORDER BY created_at %s", direction)
+		case model.FolderSortFieldPath:
+			orderBy = fmt.Sprintf("ORDER BY path %s", direction)
+		}
+	}
+
+	// Get total count
+	countQuery := strings.Replace(baseQuery, "SELECT id, name, created_at, parent_id, path, real_path, owner_id", "SELECT COUNT(*)", 1)
+
+	var totalCount int64
+	err := r.DBPool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total count: %w", err)
+	}
+
+	// Add pagination
+	finalQuery := fmt.Sprintf("%s %s LIMIT $%d OFFSET $%d", baseQuery, orderBy, argIndex, argIndex+1)
+	args = append(args, limit, offset)
+
+	// Execute query
+	rows, err := r.DBPool.Query(ctx, finalQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	var folders []*postgres.Folder
+	for rows.Next() {
+		var folder postgres.Folder
+		err := rows.Scan(&folder.ID, &folder.Name, &folder.CreatedAt, &folder.ParentID, &folder.Path, &folder.RealPath, &folder.OwnerID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		folders = append(folders, &folder)
+	}
+
+	return &model.FoldersResponse{
+		Folders:         folders,
+		TotalCount:      int32(totalCount),
+		HasNextPage:     int64(offset+limit) < totalCount,
+		HasPreviousPage: offset > 0,
+	}, nil
+}
+
 // GetFilesInFolder is the resolver for the getFilesInFolder field.
 func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*model.File, error) {
 	userID := utils.GetUserID(ctx)
@@ -623,39 +1233,6 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 	}
 
 	return folders, nil
-}
-
-// GetFolderDetails is the resolver for the getFolderDetails field.
-func (r *queryResolver) GetFolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error) {
-	userID := utils.GetUserID(ctx)
-	if !userID.Valid && publicToken == nil {
-		return nil, fmt.Errorf("access denied")
-	}
-
-	folderUUID := utils.GetPgUUID(&folderID)
-	if !folderUUID.Valid {
-		return nil, fmt.Errorf("invalid folderId")
-	}
-
-	folder, err := r.DB.GetFolderByID(ctx, folderUUID)
-	if err != nil {
-		return nil, fmt.Errorf("folder not found")
-	}
-
-	canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
-		ID:               folder.ID,
-		PublicToken:      utils.GetPgString(publicToken),
-		SharedWithUserID: userID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error checking folder access: %w", err)
-	}
-
-	if (folder.OwnerID != userID) && !canAccessFolder {
-		return nil, fmt.Errorf("permission denied")
-	}
-
-	return &folder, nil
 }
 
 // Folder returns generated.FolderResolver implementation.

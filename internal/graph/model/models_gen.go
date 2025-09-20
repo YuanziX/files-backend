@@ -48,12 +48,58 @@ type File struct {
 	UploadDate time.Time `json:"uploadDate"`
 }
 
+type FileFilter struct {
+	Filename       *string    `json:"filename,omitempty"`
+	MimeType       *string    `json:"mimeType,omitempty"`
+	MinSize        *int32     `json:"minSize,omitempty"`
+	MaxSize        *int32     `json:"maxSize,omitempty"`
+	UploadedAfter  *time.Time `json:"uploadedAfter,omitempty"`
+	UploadedBefore *time.Time `json:"uploadedBefore,omitempty"`
+}
+
+type FileSort struct {
+	Field     FileSortField `json:"field"`
+	Direction SortDirection `json:"direction"`
+}
+
+type FilesResponse struct {
+	Files           []*File `json:"files"`
+	TotalCount      int32   `json:"totalCount"`
+	HasNextPage     bool    `json:"hasNextPage"`
+	HasPreviousPage bool    `json:"hasPreviousPage"`
+}
+
+type FolderFilter struct {
+	Name          *string    `json:"name,omitempty"`
+	Path          *string    `json:"path,omitempty"`
+	CreatedAfter  *time.Time `json:"createdAfter,omitempty"`
+	CreatedBefore *time.Time `json:"createdBefore,omitempty"`
+	ParentID      *string    `json:"parentID,omitempty"`
+}
+
+type FolderSort struct {
+	Field     FolderSortField `json:"field"`
+	Direction SortDirection   `json:"direction"`
+}
+
+type FoldersResponse struct {
+	Folders         []*postgres.Folder `json:"folders"`
+	TotalCount      int32              `json:"totalCount"`
+	HasNextPage     bool               `json:"hasNextPage"`
+	HasPreviousPage bool               `json:"hasPreviousPage"`
+}
+
 type LoginUser struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 type Mutation struct {
+}
+
+type PaginationInput struct {
+	Limit  *int32 `json:"limit,omitempty"`
+	Offset *int32 `json:"offset,omitempty"`
 }
 
 type PreSignedURL struct {
@@ -80,6 +126,122 @@ type RegisterUser struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type FileSortField string
+
+const (
+	FileSortFieldFilename   FileSortField = "FILENAME"
+	FileSortFieldMimeType   FileSortField = "MIME_TYPE"
+	FileSortFieldSize       FileSortField = "SIZE"
+	FileSortFieldUploadDate FileSortField = "UPLOAD_DATE"
+)
+
+var AllFileSortField = []FileSortField{
+	FileSortFieldFilename,
+	FileSortFieldMimeType,
+	FileSortFieldSize,
+	FileSortFieldUploadDate,
+}
+
+func (e FileSortField) IsValid() bool {
+	switch e {
+	case FileSortFieldFilename, FileSortFieldMimeType, FileSortFieldSize, FileSortFieldUploadDate:
+		return true
+	}
+	return false
+}
+
+func (e FileSortField) String() string {
+	return string(e)
+}
+
+func (e *FileSortField) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FileSortField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FileSortField", str)
+	}
+	return nil
+}
+
+func (e FileSortField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *FileSortField) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e FileSortField) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type FolderSortField string
+
+const (
+	FolderSortFieldName      FolderSortField = "NAME"
+	FolderSortFieldCreatedAt FolderSortField = "CREATED_AT"
+	FolderSortFieldPath      FolderSortField = "PATH"
+)
+
+var AllFolderSortField = []FolderSortField{
+	FolderSortFieldName,
+	FolderSortFieldCreatedAt,
+	FolderSortFieldPath,
+}
+
+func (e FolderSortField) IsValid() bool {
+	switch e {
+	case FolderSortFieldName, FolderSortFieldCreatedAt, FolderSortFieldPath:
+		return true
+	}
+	return false
+}
+
+func (e FolderSortField) String() string {
+	return string(e)
+}
+
+func (e *FolderSortField) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FolderSortField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FolderSortField", str)
+	}
+	return nil
+}
+
+func (e FolderSortField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *FolderSortField) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e FolderSortField) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
 
 type Role string
@@ -132,6 +294,61 @@ func (e *Role) UnmarshalJSON(b []byte) error {
 }
 
 func (e Role) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type SortDirection string
+
+const (
+	SortDirectionAsc  SortDirection = "ASC"
+	SortDirectionDesc SortDirection = "DESC"
+)
+
+var AllSortDirection = []SortDirection{
+	SortDirectionAsc,
+	SortDirectionDesc,
+}
+
+func (e SortDirection) IsValid() bool {
+	switch e {
+	case SortDirectionAsc, SortDirectionDesc:
+		return true
+	}
+	return false
+}
+
+func (e SortDirection) String() string {
+	return string(e)
+}
+
+func (e *SortDirection) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SortDirection(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SortDirection", str)
+	}
+	return nil
+}
+
+func (e SortDirection) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *SortDirection) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e SortDirection) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil
