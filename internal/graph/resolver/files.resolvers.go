@@ -393,29 +393,6 @@ func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, 
 		return nil, fmt.Errorf("access denied")
 	}
 
-	folderUUID := utils.GetPgUUID(folderID)
-	if !folderUUID.Valid {
-		return nil, fmt.Errorf("invalid folderId")
-	}
-
-	requestedFolder, err := r.DB.GetFolderByID(ctx, folderUUID)
-	if err != nil {
-		return nil, fmt.Errorf("folder not found")
-	}
-
-	canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
-		ID:               requestedFolder.ID,
-		PublicToken:      utils.GetPgString(publicToken),
-		SharedWithUserID: userID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error checking folder access: %w", err)
-	}
-
-	if (requestedFolder.OwnerID != userID) && !canAccessFolder {
-		return nil, fmt.Errorf("permission denied")
-	}
-
 	var files []*model.File
 	if folderID == nil {
 		rootFiles, err := r.DB.ListRootFilesByOwner(ctx, userID)
@@ -434,13 +411,32 @@ func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, 
 		}
 
 	} else {
-		folderUUID, err := uuid.Parse(*folderID)
-		if err != nil {
+		folderUUID := utils.GetPgUUID(folderID)
+		if !folderUUID.Valid {
 			return nil, fmt.Errorf("invalid folderId")
 		}
+
+		requestedFolder, err := r.DB.GetFolderByID(ctx, folderUUID)
+		if err != nil {
+			return nil, fmt.Errorf("folder not found")
+		}
+
+		canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
+			ID:               requestedFolder.ID,
+			PublicToken:      utils.GetPgString(publicToken),
+			SharedWithUserID: userID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error checking folder access: %w", err)
+		}
+
+		if (requestedFolder.OwnerID != userID) && !canAccessFolder {
+			return nil, fmt.Errorf("permission denied")
+		}
+
 		folderFiles, err := r.DB.ListFilesByOwnerAndFolder(ctx, postgres.ListFilesByOwnerAndFolderParams{
 			OwnerID:  userID,
-			FolderID: pgtype.UUID{Bytes: folderUUID, Valid: true},
+			FolderID: folderUUID,
 		})
 		if err != nil {
 			return nil, err
@@ -466,29 +462,6 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 		return nil, fmt.Errorf("access denied")
 	}
 
-	folderUUID := utils.GetPgUUID(folderID)
-	if !folderUUID.Valid {
-		return nil, fmt.Errorf("invalid folderId")
-	}
-
-	requestedFolder, err := r.DB.GetFolderByID(ctx, folderUUID)
-	if err != nil {
-		return nil, fmt.Errorf("folder not found")
-	}
-
-	canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
-		ID:               requestedFolder.ID,
-		PublicToken:      utils.GetPgString(publicToken),
-		SharedWithUserID: userID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error checking folder access: %w", err)
-	}
-
-	if (requestedFolder.OwnerID != userID) && !canAccessFolder {
-		return nil, fmt.Errorf("permission denied")
-	}
-
 	var folders []*postgres.Folder
 	if folderID == nil {
 		rootFolders, err := r.DB.ListRootFoldersByOwner(ctx, userID)
@@ -511,6 +484,25 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 		if !folderUUID.Valid {
 			return nil, fmt.Errorf("invalid folderId")
 		}
+
+		requestedFolder, err := r.DB.GetFolderByID(ctx, folderUUID)
+		if err != nil {
+			return nil, fmt.Errorf("folder not found")
+		}
+
+		canAccessFolder, err := r.DB.CanAccessFolder(ctx, postgres.CanAccessFolderParams{
+			ID:               requestedFolder.ID,
+			PublicToken:      utils.GetPgString(publicToken),
+			SharedWithUserID: userID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error checking folder access: %w", err)
+		}
+
+		if (requestedFolder.OwnerID != userID) && !canAccessFolder {
+			return nil, fmt.Errorf("permission denied")
+		}
+
 		folderFiles, err := r.DB.ListSubfoldersByParent(ctx, postgres.ListSubfoldersByParentParams{
 			OwnerID:  userID,
 			ParentID: folderUUID,
