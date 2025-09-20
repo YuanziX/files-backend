@@ -162,7 +162,38 @@ func (r *mutationResolver) CreateFolder(ctx context.Context, name string, parent
 
 // DeleteFile is the resolver for the deleteFile field.
 func (r *mutationResolver) DeleteFile(ctx context.Context, fileID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteFile - deleteFile"))
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
+		return false, fmt.Errorf("access denied")
+	}
+
+	fileUUID := utils.GetPgUUID(&fileID)
+	if !fileUUID.Valid {
+		return false, fmt.Errorf("invalid fileId")
+	}
+
+	// ensure file exists and belongs to user
+	requestedFile, err := r.DB.GetFileByIdAndOwner(ctx, postgres.GetFileByIdAndOwnerParams{
+		ID:      fileUUID,
+		OwnerID: userID,
+	})
+
+	if err != nil || (requestedFile.OwnerID != userID) {
+		return false, fmt.Errorf("file not found, or invalid permissions: %w", err)
+	}
+
+	err = r.DB.DeleteFileReference(ctx, fileUUID)
+	if err != nil {
+		return false, fmt.Errorf("failed to delete file reference: %w", err)
+	}
+
+	// decrement physical file refs
+	err = r.DB.DecrementPhysicalFileReferenceCount(ctx, requestedFile.PhysicalFileID)
+	if err != nil {
+		return false, fmt.Errorf("failed to decrement references: %w", err)
+	}
+
+	return true, nil
 }
 
 // DeleteFolder is the resolver for the deleteFolder field.

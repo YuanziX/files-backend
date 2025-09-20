@@ -140,6 +140,30 @@ func (q *Queries) DeleteFileReference(ctx context.Context, id pgtype.UUID) error
 	return err
 }
 
+const getFileByIdAndOwner = `-- name: GetFileByIdAndOwner :one
+SELECT id, owner_id, physical_file_id, folder_id, filename, upload_date FROM files WHERE id = $1
+AND owner_id = $2
+`
+
+type GetFileByIdAndOwnerParams struct {
+	ID      pgtype.UUID `json:"id"`
+	OwnerID pgtype.UUID `json:"owner_id"`
+}
+
+func (q *Queries) GetFileByIdAndOwner(ctx context.Context, arg GetFileByIdAndOwnerParams) (File, error) {
+	row := q.db.QueryRow(ctx, getFileByIdAndOwner, arg.ID, arg.OwnerID)
+	var i File
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.PhysicalFileID,
+		&i.FolderID,
+		&i.Filename,
+		&i.UploadDate,
+	)
+	return i, err
+}
+
 const getFileForDeletion = `-- name: GetFileForDeletion :one
 SELECT owner_id, physical_file_id FROM files WHERE id = $1
 `

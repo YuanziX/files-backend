@@ -26,6 +26,7 @@ type Querier interface {
 	DeleteFilesInFolder(ctx context.Context, id pgtype.UUID) error
 	DeleteFolder(ctx context.Context, arg DeleteFolderParams) error
 	DeleteFoldersRecursively(ctx context.Context, id pgtype.UUID) error
+	GetFileByIdAndOwner(ctx context.Context, arg GetFileByIdAndOwnerParams) (File, error)
 	GetFileForDeletion(ctx context.Context, id pgtype.UUID) (GetFileForDeletionRow, error)
 	GetFileForDownload(ctx context.Context, id pgtype.UUID) (GetFileForDownloadRow, error)
 	GetFileShares(ctx context.Context, arg GetFileSharesParams) ([]Share, error)

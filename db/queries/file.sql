@@ -66,3 +66,8 @@ DELETE FROM files WHERE id = $1;
 SELECT EXISTS (
     SELECT 1 FROM files WHERE id = $1 AND owner_id = $2
 );
+
+-- name: GetFileByIdAndOwner :one
+SELECT * FROM files WHERE id = $1
+AND owner_id = $2;
+
