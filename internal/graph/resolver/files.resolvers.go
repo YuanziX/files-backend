@@ -418,12 +418,24 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 // GetFilesInFolder is the resolver for the getFilesInFolder field.
 func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*model.File, error) {
 	userID := utils.GetUserID(ctx)
-	if !userID.Valid {
+	if !userID.Valid && publicToken == nil {
 		return nil, fmt.Errorf("access denied")
 	}
 
 	var files []*model.File
-	if folderID == nil {
+	if publicToken != nil {
+		folderIDFromDB, err := r.DB.GetFolderIdByPublicToken(ctx, utils.GetPgString(publicToken))
+
+		if err != nil {
+			return nil, fmt.Errorf("invalid public token or no access to any folder with this token")
+		}
+
+		folderUUID := uuid.UUID(folderIDFromDB.Bytes)
+		folderIDStr := folderUUID.String()
+		folderID = &folderIDStr
+	}
+
+	if folderID == nil && publicToken == nil {
 		rootFiles, err := r.DB.ListRootFilesByOwner(ctx, userID)
 		if err != nil {
 			return nil, err
@@ -463,10 +475,7 @@ func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, 
 			return nil, fmt.Errorf("permission denied")
 		}
 
-		folderFiles, err := r.DB.ListFilesByOwnerAndFolder(ctx, postgres.ListFilesByOwnerAndFolderParams{
-			OwnerID:  userID,
-			FolderID: folderUUID,
-		})
+		folderFiles, err := r.DB.ListFilesByFolder(ctx, folderUUID)
 		if err != nil {
 			return nil, err
 		}
@@ -487,12 +496,23 @@ func (r *queryResolver) GetFilesInFolder(ctx context.Context, folderID *string, 
 // GetFoldersInFolder is the resolver for the getFoldersInFolder field.
 func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*postgres.Folder, error) {
 	userID := utils.GetUserID(ctx)
-	if !userID.Valid {
+	if !userID.Valid && publicToken == nil {
 		return nil, fmt.Errorf("access denied")
 	}
 
 	var folders []*postgres.Folder
-	if folderID == nil {
+	if publicToken != nil {
+		folderIDFromDB, err := r.DB.GetFolderIdByPublicToken(ctx, utils.GetPgString(publicToken))
+		if err != nil {
+			return nil, fmt.Errorf("invalid public token or no access to any folder with this token")
+		}
+
+		folderUUID := uuid.UUID(folderIDFromDB.Bytes)
+		folderIDStr := folderUUID.String()
+		folderID = &folderIDStr
+	}
+
+	if folderID == nil && publicToken == nil {
 		rootFolders, err := r.DB.ListRootFoldersByOwner(ctx, userID)
 		if err != nil {
 			return nil, err
@@ -532,10 +552,7 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 			return nil, fmt.Errorf("permission denied")
 		}
 
-		folderFiles, err := r.DB.ListSubfoldersByParent(ctx, postgres.ListSubfoldersByParentParams{
-			OwnerID:  userID,
-			ParentID: folderUUID,
-		})
+		folderFiles, err := r.DB.ListSubfoldersByParent(ctx, folderUUID)
 		if err != nil {
 			return nil, err
 		}
@@ -556,7 +573,7 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 // GetFolderDetails is the resolver for the getFolderDetails field.
 func (r *queryResolver) GetFolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error) {
 	userID := utils.GetUserID(ctx)
-	if !userID.Valid {
+	if !userID.Valid && publicToken == nil {
 		return nil, fmt.Errorf("access denied")
 	}
 

@@ -1949,20 +1949,7 @@ func (ec *executionContext) _Query_getFilesInFolder(ctx context.Context, field g
 			fc := graphql.GetFieldContext(ctx)
 			return ec.resolvers.Query().GetFilesInFolder(ctx, fc.Args["folderId"].(*string), fc.Args["publicToken"].(*string))
 		},
-		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
-			directive0 := next
-
-			directive1 := func(ctx context.Context) (any, error) {
-				if ec.directives.Auth == nil {
-					var zeroVal []*model.File
-					return zeroVal, errors.New("directive auth is not implemented")
-				}
-				return ec.directives.Auth(ctx, nil, directive0)
-			}
-
-			next = directive1
-			return next
-		},
+		nil,
 		ec.marshalNFile2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileᚄ,
 		true,
 		true,
@@ -2015,20 +2002,7 @@ func (ec *executionContext) _Query_getFoldersInFolder(ctx context.Context, field
 			fc := graphql.GetFieldContext(ctx)
 			return ec.resolvers.Query().GetFoldersInFolder(ctx, fc.Args["folderId"].(*string), fc.Args["publicToken"].(*string))
 		},
-		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
-			directive0 := next
-
-			directive1 := func(ctx context.Context) (any, error) {
-				if ec.directives.Auth == nil {
-					var zeroVal []*postgres.Folder
-					return zeroVal, errors.New("directive auth is not implemented")
-				}
-				return ec.directives.Auth(ctx, nil, directive0)
-			}
-
-			next = directive1
-			return next
-		},
+		nil,
 		ec.marshalNFolder2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolderᚄ,
 		true,
 		true,
@@ -2087,20 +2061,7 @@ func (ec *executionContext) _Query_getFolderDetails(ctx context.Context, field g
 			fc := graphql.GetFieldContext(ctx)
 			return ec.resolvers.Query().GetFolderDetails(ctx, fc.Args["folderId"].(string), fc.Args["publicToken"].(*string))
 		},
-		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
-			directive0 := next
-
-			directive1 := func(ctx context.Context) (any, error) {
-				if ec.directives.Auth == nil {
-					var zeroVal *postgres.Folder
-					return zeroVal, errors.New("directive auth is not implemented")
-				}
-				return ec.directives.Auth(ctx, nil, directive0)
-			}
-
-			next = directive1
-			return next
-		},
+		nil,
 		ec.marshalOFolder2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolder,
 		true,
 		false,

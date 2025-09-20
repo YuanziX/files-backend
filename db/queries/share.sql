@@ -49,3 +49,8 @@ WHERE folder_id = $1
 SELECT * FROM shares
 WHERE file_id = $1
   AND owner_id = $2;
+
+-- name: GetFolderIdByPublicToken :one
+SELECT folder_id FROM shares
+WHERE public_token = $1
+  AND share_type = 'public';

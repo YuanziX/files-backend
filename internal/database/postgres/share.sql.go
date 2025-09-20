@@ -71,6 +71,19 @@ func (q *Queries) GetFileShares(ctx context.Context, arg GetFileSharesParams) ([
 	return items, nil
 }
 
+const getFolderIdByPublicToken = `-- name: GetFolderIdByPublicToken :one
+SELECT folder_id FROM shares
+WHERE public_token = $1
+  AND share_type = 'public'
+`
+
+func (q *Queries) GetFolderIdByPublicToken(ctx context.Context, publicToken pgtype.Text) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, getFolderIdByPublicToken, publicToken)
+	var folder_id pgtype.UUID
+	err := row.Scan(&folder_id)
+	return folder_id, err
+}
+
 const getFolderShares = `-- name: GetFolderShares :many
 SELECT id, file_id, folder_id, share_type, owner_id, shared_with_user_id, public_token, download_count, created_at FROM shares
 WHERE folder_id = $1

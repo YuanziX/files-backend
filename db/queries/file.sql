@@ -1,10 +1,10 @@
--- name: ListFilesByOwnerAndFolder :many
+-- name: ListFilesByFolder :many
 SELECT
     f.id, f.filename, f.upload_date,
     pf.mime_type, pf.size_bytes
 FROM files f
 JOIN physical_files pf ON f.physical_file_id = pf.id
-WHERE f.owner_id = $1 AND f.folder_id = $2
+WHERE f.folder_id = $1
 ORDER BY f.filename;
 
 -- name: ListRootFilesByOwner :many

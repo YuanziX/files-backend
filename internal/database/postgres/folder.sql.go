@@ -228,17 +228,12 @@ func (q *Queries) ListRootFoldersByOwner(ctx context.Context, ownerID pgtype.UUI
 
 const listSubfoldersByParent = `-- name: ListSubfoldersByParent :many
 SELECT id, owner_id, parent_id, name, path, created_at, real_path FROM folders
-WHERE owner_id = $1 AND parent_id = $2
+WHERE parent_id = $1
 ORDER BY name
 `
 
-type ListSubfoldersByParentParams struct {
-	OwnerID  pgtype.UUID `json:"owner_id"`
-	ParentID pgtype.UUID `json:"parent_id"`
-}
-
-func (q *Queries) ListSubfoldersByParent(ctx context.Context, arg ListSubfoldersByParentParams) ([]Folder, error) {
-	rows, err := q.db.Query(ctx, listSubfoldersByParent, arg.OwnerID, arg.ParentID)
+func (q *Queries) ListSubfoldersByParent(ctx context.Context, parentID pgtype.UUID) ([]Folder, error) {
+	rows, err := q.db.Query(ctx, listSubfoldersByParent, parentID)
 	if err != nil {
 		return nil, err
 	}

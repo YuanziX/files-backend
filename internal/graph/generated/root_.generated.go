@@ -862,9 +862,9 @@ type ConfirmUploadsResponse {
 }
 
 extend type Query {
-  getFilesInFolder(folderId: ID, publicToken: String): [File!]! @auth
-  getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]! @auth
-  getFolderDetails(folderId: ID!, publicToken: String): Folder @auth
+  getFilesInFolder(folderId: ID, publicToken: String): [File!]!
+  getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]!
+  getFolderDetails(folderId: ID!, publicToken: String): Folder
 }
 
 extend type Mutation {

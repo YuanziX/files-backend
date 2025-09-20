@@ -223,22 +223,17 @@ func (q *Queries) GetPhysicalFileByHash(ctx context.Context, contentHash string)
 	return i, err
 }
 
-const listFilesByOwnerAndFolder = `-- name: ListFilesByOwnerAndFolder :many
+const listFilesByFolder = `-- name: ListFilesByFolder :many
 SELECT
     f.id, f.filename, f.upload_date,
     pf.mime_type, pf.size_bytes
 FROM files f
 JOIN physical_files pf ON f.physical_file_id = pf.id
-WHERE f.owner_id = $1 AND f.folder_id = $2
+WHERE f.folder_id = $1
 ORDER BY f.filename
 `
 
-type ListFilesByOwnerAndFolderParams struct {
-	OwnerID  pgtype.UUID `json:"owner_id"`
-	FolderID pgtype.UUID `json:"folder_id"`
-}
-
-type ListFilesByOwnerAndFolderRow struct {
+type ListFilesByFolderRow struct {
 	ID         pgtype.UUID        `json:"id"`
 	Filename   string             `json:"filename"`
 	UploadDate pgtype.Timestamptz `json:"upload_date"`
@@ -246,15 +241,15 @@ type ListFilesByOwnerAndFolderRow struct {
 	SizeBytes  int64              `json:"size_bytes"`
 }
 
-func (q *Queries) ListFilesByOwnerAndFolder(ctx context.Context, arg ListFilesByOwnerAndFolderParams) ([]ListFilesByOwnerAndFolderRow, error) {
-	rows, err := q.db.Query(ctx, listFilesByOwnerAndFolder, arg.OwnerID, arg.FolderID)
+func (q *Queries) ListFilesByFolder(ctx context.Context, folderID pgtype.UUID) ([]ListFilesByFolderRow, error) {
+	rows, err := q.db.Query(ctx, listFilesByFolder, folderID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListFilesByOwnerAndFolderRow
+	var items []ListFilesByFolderRow
 	for rows.Next() {
-		var i ListFilesByOwnerAndFolderRow
+		var i ListFilesByFolderRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Filename,

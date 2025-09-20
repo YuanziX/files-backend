@@ -13,7 +13,7 @@ ORDER BY name;
 
 -- name: ListSubfoldersByParent :many
 SELECT * FROM folders
-WHERE owner_id = $1 AND parent_id = $2
+WHERE parent_id = $1
 ORDER BY name;
 
 -- name: GetFolderByID :one
