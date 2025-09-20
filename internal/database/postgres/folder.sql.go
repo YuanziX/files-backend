@@ -60,9 +60,9 @@ func (q *Queries) CheckFolderOwnership(ctx context.Context, arg CheckFolderOwner
 }
 
 const createFolder = `-- name: CreateFolder :one
-INSERT INTO folders (id, owner_id, parent_id, name, path)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, owner_id, parent_id, name, path, created_at
+INSERT INTO folders (id, owner_id, parent_id, name, path, real_path)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, owner_id, parent_id, name, path, created_at, real_path
 `
 
 type CreateFolderParams struct {
@@ -71,6 +71,7 @@ type CreateFolderParams struct {
 	ParentID pgtype.UUID `json:"parent_id"`
 	Name     string      `json:"name"`
 	Path     string      `json:"path"`
+	RealPath string      `json:"real_path"`
 }
 
 func (q *Queries) CreateFolder(ctx context.Context, arg CreateFolderParams) (Folder, error) {
@@ -80,6 +81,7 @@ func (q *Queries) CreateFolder(ctx context.Context, arg CreateFolderParams) (Fol
 		arg.ParentID,
 		arg.Name,
 		arg.Path,
+		arg.RealPath,
 	)
 	var i Folder
 	err := row.Scan(
@@ -89,6 +91,7 @@ func (q *Queries) CreateFolder(ctx context.Context, arg CreateFolderParams) (Fol
 		&i.Name,
 		&i.Path,
 		&i.CreatedAt,
+		&i.RealPath,
 	)
 	return i, err
 }
@@ -149,7 +152,7 @@ func (q *Queries) DeleteFoldersRecursively(ctx context.Context, id pgtype.UUID) 
 }
 
 const getFolderByID = `-- name: GetFolderByID :one
-SELECT id, owner_id, parent_id, name, path, created_at FROM folders
+SELECT id, owner_id, parent_id, name, path, created_at, real_path FROM folders
 WHERE id = $1
 `
 
@@ -163,12 +166,13 @@ func (q *Queries) GetFolderByID(ctx context.Context, id pgtype.UUID) (Folder, er
 		&i.Name,
 		&i.Path,
 		&i.CreatedAt,
+		&i.RealPath,
 	)
 	return i, err
 }
 
 const getFolderPath = `-- name: GetFolderPath :one
-SELECT path FROM folders WHERE id = $1 AND owner_id = $2
+SELECT path, real_path FROM folders WHERE id = $1 AND owner_id = $2
 `
 
 type GetFolderPathParams struct {
@@ -176,15 +180,20 @@ type GetFolderPathParams struct {
 	OwnerID pgtype.UUID `json:"owner_id"`
 }
 
-func (q *Queries) GetFolderPath(ctx context.Context, arg GetFolderPathParams) (string, error) {
+type GetFolderPathRow struct {
+	Path     string `json:"path"`
+	RealPath string `json:"real_path"`
+}
+
+func (q *Queries) GetFolderPath(ctx context.Context, arg GetFolderPathParams) (GetFolderPathRow, error) {
 	row := q.db.QueryRow(ctx, getFolderPath, arg.ID, arg.OwnerID)
-	var path string
-	err := row.Scan(&path)
-	return path, err
+	var i GetFolderPathRow
+	err := row.Scan(&i.Path, &i.RealPath)
+	return i, err
 }
 
 const listRootFoldersByOwner = `-- name: ListRootFoldersByOwner :many
-SELECT id, owner_id, parent_id, name, path, created_at FROM folders
+SELECT id, owner_id, parent_id, name, path, created_at, real_path FROM folders
 WHERE owner_id = $1 AND parent_id IS NULL
 ORDER BY name
 `
@@ -205,6 +214,7 @@ func (q *Queries) ListRootFoldersByOwner(ctx context.Context, ownerID pgtype.UUI
 			&i.Name,
 			&i.Path,
 			&i.CreatedAt,
+			&i.RealPath,
 		); err != nil {
 			return nil, err
 		}
@@ -217,7 +227,7 @@ func (q *Queries) ListRootFoldersByOwner(ctx context.Context, ownerID pgtype.UUI
 }
 
 const listSubfoldersByParent = `-- name: ListSubfoldersByParent :many
-SELECT id, owner_id, parent_id, name, path, created_at FROM folders
+SELECT id, owner_id, parent_id, name, path, created_at, real_path FROM folders
 WHERE owner_id = $1 AND parent_id = $2
 ORDER BY name
 `
@@ -243,6 +253,7 @@ func (q *Queries) ListSubfoldersByParent(ctx context.Context, arg ListSubfolders
 			&i.Name,
 			&i.Path,
 			&i.CreatedAt,
+			&i.RealPath,
 		); err != nil {
 			return nil, err
 		}

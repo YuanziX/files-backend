@@ -6,6 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.80
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.12
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.1
+	github.com/gabriel-vasile/mimetype v1.4.10
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/go-chi/cors v1.2.2
 	github.com/golang-jwt/jwt/v5 v5.3.0

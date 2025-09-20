@@ -34,7 +34,7 @@ type MutationResolver interface {
 	DeleteFile(ctx context.Context, fileID string) (bool, error)
 	DeleteFolder(ctx context.Context, folderID string) (bool, error)
 	PreUploadCheck(ctx context.Context, files []*model.PreUploadFileInput) (*model.PreUploadCheckResponse, error)
-	ConfirmUploads(ctx context.Context, uploads []*model.ConfirmUploadInput) ([]*model.File, error)
+	ConfirmUploads(ctx context.Context, uploads []*model.ConfirmUploadInput) (*model.ConfirmUploadsResponse, error)
 	ShareFileWithUser(ctx context.Context, fileID string, userID string) (string, error)
 	UnshareFileWithUser(ctx context.Context, fileID string, userID string) (bool, error)
 	ShareFolderWithUser(ctx context.Context, folderID string, userID string) (string, error)
@@ -48,7 +48,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*model.File, error)
 	GetFoldersInFolder(ctx context.Context, folderID *string, publicToken *string) ([]*postgres.Folder, error)
-	FolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error)
+	GetFolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error)
 	GetFileShares(ctx context.Context, fileID string) ([]*postgres.Share, error)
 	GetFolderShares(ctx context.Context, folderID string) ([]*postgres.Share, error)
 	GetMyShares(ctx context.Context) ([]*postgres.Share, error)
@@ -265,22 +265,6 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_folderDetails_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "folderId", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["folderId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "publicToken", ec.unmarshalOString2ᚖstring)
-	if err != nil {
-		return nil, err
-	}
-	args["publicToken"] = arg1
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_getFileShares_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -296,6 +280,22 @@ func (ec *executionContext) field_Query_getFilesInFolder_args(ctx context.Contex
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "folderId", ec.unmarshalOID2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["folderId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "publicToken", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["publicToken"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getFolderDetails_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "folderId", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
@@ -342,6 +342,82 @@ func (ec *executionContext) field_Query_getFoldersInFolder_args(ctx context.Cont
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _ConfirmUploadsResponse_files(ctx context.Context, field graphql.CollectedField, obj *model.ConfirmUploadsResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ConfirmUploadsResponse_files,
+		func(ctx context.Context) (any, error) {
+			return obj.Files, nil
+		},
+		nil,
+		ec.marshalNFile2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ConfirmUploadsResponse_files(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ConfirmUploadsResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_File_id(ctx, field)
+			case "filename":
+				return ec.fieldContext_File_filename(ctx, field)
+			case "mimeType":
+				return ec.fieldContext_File_mimeType(ctx, field)
+			case "size":
+				return ec.fieldContext_File_size(ctx, field)
+			case "uploadDate":
+				return ec.fieldContext_File_uploadDate(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ConfirmUploadsResponse_failedUploads(ctx context.Context, field graphql.CollectedField, obj *model.ConfirmUploadsResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ConfirmUploadsResponse_failedUploads,
+		func(ctx context.Context) (any, error) {
+			return obj.FailedUploads, nil
+		},
+		nil,
+		ec.marshalNFailedUpload2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFailedUploadᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ConfirmUploadsResponse_failedUploads(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ConfirmUploadsResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hash":
+				return ec.fieldContext_FailedUpload_hash(ctx, field)
+			case "reason":
+				return ec.fieldContext_FailedUpload_reason(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FailedUpload", field.Name)
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _DownloadURL_downloadURL(ctx context.Context, field graphql.CollectedField, obj *model.DownloadURL) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
@@ -391,6 +467,64 @@ func (ec *executionContext) _DownloadURL_filename(ctx context.Context, field gra
 func (ec *executionContext) fieldContext_DownloadURL_filename(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "DownloadURL",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FailedUpload_hash(ctx context.Context, field graphql.CollectedField, obj *model.FailedUpload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FailedUpload_hash,
+		func(ctx context.Context) (any, error) {
+			return obj.Hash, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FailedUpload_hash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FailedUpload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FailedUpload_reason(ctx context.Context, field graphql.CollectedField, obj *model.FailedUpload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FailedUpload_reason,
+		func(ctx context.Context) (any, error) {
+			return obj.Reason, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FailedUpload_reason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FailedUpload",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -662,12 +796,12 @@ func (ec *executionContext) fieldContext_Folder_parentID(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Folder_Path(ctx context.Context, field graphql.CollectedField, obj *postgres.Folder) (ret graphql.Marshaler) {
+func (ec *executionContext) _Folder_path(ctx context.Context, field graphql.CollectedField, obj *postgres.Folder) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Folder_Path,
+		ec.fieldContext_Folder_path,
 		func(ctx context.Context) (any, error) {
 			return obj.Path, nil
 		},
@@ -678,7 +812,36 @@ func (ec *executionContext) _Folder_Path(ctx context.Context, field graphql.Coll
 	)
 }
 
-func (ec *executionContext) fieldContext_Folder_Path(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Folder_path(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Folder",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Folder_realPath(ctx context.Context, field graphql.CollectedField, obj *postgres.Folder) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Folder_realPath,
+		func(ctx context.Context) (any, error) {
+			return obj.RealPath, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Folder_realPath(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Folder",
 		Field:      field,
@@ -723,8 +886,10 @@ func (ec *executionContext) fieldContext_Folder_childrenFolders(_ context.Contex
 				return ec.fieldContext_Folder_createdAt(ctx, field)
 			case "parentID":
 				return ec.fieldContext_Folder_parentID(ctx, field)
-			case "Path":
-				return ec.fieldContext_Folder_Path(ctx, field)
+			case "path":
+				return ec.fieldContext_Folder_path(ctx, field)
+			case "realPath":
+				return ec.fieldContext_Folder_realPath(ctx, field)
 			case "childrenFolders":
 				return ec.fieldContext_Folder_childrenFolders(ctx, field)
 			case "childrenFiles":
@@ -883,8 +1048,10 @@ func (ec *executionContext) fieldContext_Mutation_createFolder(ctx context.Conte
 				return ec.fieldContext_Folder_createdAt(ctx, field)
 			case "parentID":
 				return ec.fieldContext_Folder_parentID(ctx, field)
-			case "Path":
-				return ec.fieldContext_Folder_Path(ctx, field)
+			case "path":
+				return ec.fieldContext_Folder_path(ctx, field)
+			case "realPath":
+				return ec.fieldContext_Folder_realPath(ctx, field)
 			case "childrenFolders":
 				return ec.fieldContext_Folder_childrenFolders(ctx, field)
 			case "childrenFiles":
@@ -1090,7 +1257,7 @@ func (ec *executionContext) _Mutation_confirmUploads(ctx context.Context, field 
 
 			directive1 := func(ctx context.Context) (any, error) {
 				if ec.directives.Auth == nil {
-					var zeroVal []*model.File
+					var zeroVal *model.ConfirmUploadsResponse
 					return zeroVal, errors.New("directive auth is not implemented")
 				}
 				return ec.directives.Auth(ctx, nil, directive0)
@@ -1099,7 +1266,7 @@ func (ec *executionContext) _Mutation_confirmUploads(ctx context.Context, field 
 			next = directive1
 			return next
 		},
-		ec.marshalNFile2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileᚄ,
+		ec.marshalNConfirmUploadsResponse2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐConfirmUploadsResponse,
 		true,
 		true,
 	)
@@ -1113,18 +1280,12 @@ func (ec *executionContext) fieldContext_Mutation_confirmUploads(ctx context.Con
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_File_id(ctx, field)
-			case "filename":
-				return ec.fieldContext_File_filename(ctx, field)
-			case "mimeType":
-				return ec.fieldContext_File_mimeType(ctx, field)
-			case "size":
-				return ec.fieldContext_File_size(ctx, field)
-			case "uploadDate":
-				return ec.fieldContext_File_uploadDate(ctx, field)
+			case "files":
+				return ec.fieldContext_ConfirmUploadsResponse_files(ctx, field)
+			case "failedUploads":
+				return ec.fieldContext_ConfirmUploadsResponse_failedUploads(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ConfirmUploadsResponse", field.Name)
 		},
 	}
 	defer func() {
@@ -1890,8 +2051,10 @@ func (ec *executionContext) fieldContext_Query_getFoldersInFolder(ctx context.Co
 				return ec.fieldContext_Folder_createdAt(ctx, field)
 			case "parentID":
 				return ec.fieldContext_Folder_parentID(ctx, field)
-			case "Path":
-				return ec.fieldContext_Folder_Path(ctx, field)
+			case "path":
+				return ec.fieldContext_Folder_path(ctx, field)
+			case "realPath":
+				return ec.fieldContext_Folder_realPath(ctx, field)
 			case "childrenFolders":
 				return ec.fieldContext_Folder_childrenFolders(ctx, field)
 			case "childrenFiles":
@@ -1914,15 +2077,15 @@ func (ec *executionContext) fieldContext_Query_getFoldersInFolder(ctx context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_folderDetails(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_getFolderDetails(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_folderDetails,
+		ec.fieldContext_Query_getFolderDetails,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().FolderDetails(ctx, fc.Args["folderId"].(string), fc.Args["publicToken"].(*string))
+			return ec.resolvers.Query().GetFolderDetails(ctx, fc.Args["folderId"].(string), fc.Args["publicToken"].(*string))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -1944,7 +2107,7 @@ func (ec *executionContext) _Query_folderDetails(ctx context.Context, field grap
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_folderDetails(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getFolderDetails(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -1960,8 +2123,10 @@ func (ec *executionContext) fieldContext_Query_folderDetails(ctx context.Context
 				return ec.fieldContext_Folder_createdAt(ctx, field)
 			case "parentID":
 				return ec.fieldContext_Folder_parentID(ctx, field)
-			case "Path":
-				return ec.fieldContext_Folder_Path(ctx, field)
+			case "path":
+				return ec.fieldContext_Folder_path(ctx, field)
+			case "realPath":
+				return ec.fieldContext_Folder_realPath(ctx, field)
 			case "childrenFolders":
 				return ec.fieldContext_Folder_childrenFolders(ctx, field)
 			case "childrenFiles":
@@ -1977,7 +2142,7 @@ func (ec *executionContext) fieldContext_Query_folderDetails(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_folderDetails_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_getFolderDetails_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -2452,6 +2617,50 @@ func (ec *executionContext) unmarshalInputPreUploadFileInput(ctx context.Context
 
 // region    **************************** object.gotpl ****************************
 
+var confirmUploadsResponseImplementors = []string{"ConfirmUploadsResponse"}
+
+func (ec *executionContext) _ConfirmUploadsResponse(ctx context.Context, sel ast.SelectionSet, obj *model.ConfirmUploadsResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, confirmUploadsResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ConfirmUploadsResponse")
+		case "files":
+			out.Values[i] = ec._ConfirmUploadsResponse_files(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "failedUploads":
+			out.Values[i] = ec._ConfirmUploadsResponse_failedUploads(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var downloadURLImplementors = []string{"DownloadURL"}
 
 func (ec *executionContext) _DownloadURL(ctx context.Context, sel ast.SelectionSet, obj *model.DownloadURL) graphql.Marshaler {
@@ -2470,6 +2679,50 @@ func (ec *executionContext) _DownloadURL(ctx context.Context, sel ast.SelectionS
 			}
 		case "filename":
 			out.Values[i] = ec._DownloadURL_filename(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var failedUploadImplementors = []string{"FailedUpload"}
+
+func (ec *executionContext) _FailedUpload(ctx context.Context, sel ast.SelectionSet, obj *model.FailedUpload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, failedUploadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FailedUpload")
+		case "hash":
+			out.Values[i] = ec._FailedUpload_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reason":
+			out.Values[i] = ec._FailedUpload_reason(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -2676,8 +2929,13 @@ func (ec *executionContext) _Folder(ctx context.Context, sel ast.SelectionSet, o
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "Path":
-			out.Values[i] = ec._Folder_Path(ctx, field, obj)
+		case "path":
+			out.Values[i] = ec._Folder_path(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "realPath":
+			out.Values[i] = ec._Folder_realPath(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
@@ -3079,7 +3337,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "folderDetails":
+		case "getFolderDetails":
 			field := field
 
 			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
@@ -3088,7 +3346,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_folderDetails(ctx, field)
+				res = ec._Query_getFolderDetails(ctx, field)
 				return res
 			}
 
@@ -3241,6 +3499,20 @@ func (ec *executionContext) unmarshalNConfirmUploadInput2ᚖgithubᚗcomᚋYuanz
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNConfirmUploadsResponse2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐConfirmUploadsResponse(ctx context.Context, sel ast.SelectionSet, v model.ConfirmUploadsResponse) graphql.Marshaler {
+	return ec._ConfirmUploadsResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNConfirmUploadsResponse2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐConfirmUploadsResponse(ctx context.Context, sel ast.SelectionSet, v *model.ConfirmUploadsResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ConfirmUploadsResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNDownloadURL2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐDownloadURL(ctx context.Context, sel ast.SelectionSet, v model.DownloadURL) graphql.Marshaler {
 	return ec._DownloadURL(ctx, sel, &v)
 }
@@ -3253,6 +3525,60 @@ func (ec *executionContext) marshalNDownloadURL2ᚖgithubᚗcomᚋYuanziXᚋfile
 		return graphql.Null
 	}
 	return ec._DownloadURL(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFailedUpload2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFailedUploadᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FailedUpload) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFailedUpload2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFailedUpload(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNFailedUpload2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFailedUpload(ctx context.Context, sel ast.SelectionSet, v *model.FailedUpload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FailedUpload(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNFile2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐFileᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.File) graphql.Marshaler {

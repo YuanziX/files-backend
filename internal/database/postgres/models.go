@@ -69,6 +69,7 @@ type Folder struct {
 	Name      string             `json:"name"`
 	Path      string             `json:"path"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	RealPath  string             `json:"real_path"`
 }
 
 type PhysicalFile struct {

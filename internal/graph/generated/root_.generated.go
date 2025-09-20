@@ -51,9 +51,19 @@ type ComplexityRoot struct {
 		User  func(childComplexity int) int
 	}
 
+	ConfirmUploadsResponse struct {
+		FailedUploads func(childComplexity int) int
+		Files         func(childComplexity int) int
+	}
+
 	DownloadURL struct {
 		DownloadURL func(childComplexity int) int
 		Filename    func(childComplexity int) int
+	}
+
+	FailedUpload struct {
+		Hash   func(childComplexity int) int
+		Reason func(childComplexity int) int
 	}
 
 	File struct {
@@ -72,6 +82,7 @@ type ComplexityRoot struct {
 		Name            func(childComplexity int) int
 		ParentID        func(childComplexity int) int
 		Path            func(childComplexity int) int
+		RealPath        func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -104,9 +115,9 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		FolderDetails      func(childComplexity int, folderID string, publicToken *string) int
 		GetFileShares      func(childComplexity int, fileID string) int
 		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string) int
+		GetFolderDetails   func(childComplexity int, folderID string, publicToken *string) int
 		GetFolderShares    func(childComplexity int, folderID string) int
 		GetFoldersInFolder func(childComplexity int, folderID *string, publicToken *string) int
 		GetMyShares        func(childComplexity int) int
@@ -165,6 +176,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.AuthResponse.User(childComplexity), true
 
+	case "ConfirmUploadsResponse.failedUploads":
+		if e.complexity.ConfirmUploadsResponse.FailedUploads == nil {
+			break
+		}
+
+		return e.complexity.ConfirmUploadsResponse.FailedUploads(childComplexity), true
+
+	case "ConfirmUploadsResponse.files":
+		if e.complexity.ConfirmUploadsResponse.Files == nil {
+			break
+		}
+
+		return e.complexity.ConfirmUploadsResponse.Files(childComplexity), true
+
 	case "DownloadURL.downloadURL":
 		if e.complexity.DownloadURL.DownloadURL == nil {
 			break
@@ -178,6 +203,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.DownloadURL.Filename(childComplexity), true
+
+	case "FailedUpload.hash":
+		if e.complexity.FailedUpload.Hash == nil {
+			break
+		}
+
+		return e.complexity.FailedUpload.Hash(childComplexity), true
+
+	case "FailedUpload.reason":
+		if e.complexity.FailedUpload.Reason == nil {
+			break
+		}
+
+		return e.complexity.FailedUpload.Reason(childComplexity), true
 
 	case "File.filename":
 		if e.complexity.File.Filename == nil {
@@ -256,12 +295,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Folder.ParentID(childComplexity), true
 
-	case "Folder.Path":
+	case "Folder.path":
 		if e.complexity.Folder.Path == nil {
 			break
 		}
 
 		return e.complexity.Folder.Path(childComplexity), true
+
+	case "Folder.realPath":
+		if e.complexity.Folder.RealPath == nil {
+			break
+		}
+
+		return e.complexity.Folder.RealPath(childComplexity), true
 
 	case "Mutation.confirmUploads":
 		if e.complexity.Mutation.ConfirmUploads == nil {
@@ -478,18 +524,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PreUploadCheckResponse.NewFiles(childComplexity), true
 
-	case "Query.folderDetails":
-		if e.complexity.Query.FolderDetails == nil {
-			break
-		}
-
-		args, err := ec.field_Query_folderDetails_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.FolderDetails(childComplexity, args["folderId"].(string), args["publicToken"].(*string)), true
-
 	case "Query.getFileShares":
 		if e.complexity.Query.GetFileShares == nil {
 			break
@@ -513,6 +547,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.GetFilesInFolder(childComplexity, args["folderId"].(*string), args["publicToken"].(*string)), true
+
+	case "Query.getFolderDetails":
+		if e.complexity.Query.GetFolderDetails == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFolderDetails_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetFolderDetails(childComplexity, args["folderId"].(string), args["publicToken"].(*string)), true
 
 	case "Query.getFolderShares":
 		if e.complexity.Query.GetFolderShares == nil {
@@ -769,7 +815,8 @@ type Folder {
   name: String!
   createdAt: Time!
   parentID: ID
-  Path: String!
+  path: String!
+  realPath: String!
   childrenFolders: [Folder!]!
   childrenFiles: [File!]!
 }
@@ -804,10 +851,20 @@ input ConfirmUploadInput {
   folderId: ID
 }
 
+type FailedUpload {
+  hash: String!
+  reason: String!
+}
+
+type ConfirmUploadsResponse {
+  files: [File!]!
+  failedUploads: [FailedUpload!]!
+}
+
 extend type Query {
   getFilesInFolder(folderId: ID, publicToken: String): [File!]! @auth
   getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]! @auth
-  folderDetails(folderId: ID!, publicToken: String): Folder @auth
+  getFolderDetails(folderId: ID!, publicToken: String): Folder @auth
 }
 
 extend type Mutation {
@@ -818,7 +875,7 @@ extend type Mutation {
   deleteFolder(folderId: ID!): Boolean! @auth
 
   preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse! @auth
-  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]! @auth
+  confirmUploads(uploads: [ConfirmUploadInput!]!): ConfirmUploadsResponse! @auth
 }
 `, BuiltIn: false},
 	{Name: "../schema/share.graphqls", Input: `type Share {

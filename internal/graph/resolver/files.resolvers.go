@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +18,7 @@ import (
 	"github.com/YuanziX/files-backend/internal/utils"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -112,6 +111,7 @@ func (r *mutationResolver) CreateFolder(ctx context.Context, name string, parent
 
 	var pgParentID pgtype.UUID
 	var newPath string
+	var realPath string
 	newFolderID := uuid.New() // Generate the new UUID ahead of time
 
 	if parentID != nil {
@@ -129,10 +129,12 @@ func (r *mutationResolver) CreateFolder(ctx context.Context, name string, parent
 			return nil, fmt.Errorf("parent folder not found")
 		}
 
-		newPath = fmt.Sprintf("%s.%s", parentPath, strings.ReplaceAll(newFolderID.String(), "-", "_"))
+		newPath = fmt.Sprintf("%s.%s", parentPath.Path, strings.ReplaceAll(newFolderID.String(), "-", "_"))
 		pgParentID = parentUUID
+		realPath = fmt.Sprintf("%s%s/", parentPath.RealPath, name)
 	} else {
 		newPath = strings.ReplaceAll(newFolderID.String(), "-", "_")
+		realPath = fmt.Sprintf("%s/", name)
 	}
 
 	params := postgres.CreateFolderParams{
@@ -141,6 +143,7 @@ func (r *mutationResolver) CreateFolder(ctx context.Context, name string, parent
 		ParentID: pgParentID,
 		Name:     name,
 		Path:     newPath,
+		RealPath: realPath,
 	}
 
 	newFolder, err := r.DB.CreateFolder(ctx, params)
@@ -148,10 +151,12 @@ func (r *mutationResolver) CreateFolder(ctx context.Context, name string, parent
 		return nil, fmt.Errorf("failed to create folder: %w", err)
 	}
 	return &postgres.Folder{
-		ID:       newFolder.ID,
-		Name:     newFolder.Name,
-		ParentID: newFolder.ParentID,
-		Path:     newFolder.Path,
+		ID:        newFolder.ID,
+		Name:      newFolder.Name,
+		ParentID:  newFolder.ParentID,
+		Path:      newFolder.Path,
+		CreatedAt: newFolder.CreatedAt,
+		RealPath:  newFolder.RealPath,
 	}, nil
 }
 
@@ -276,13 +281,14 @@ func (r *mutationResolver) PreUploadCheck(ctx context.Context, files []*model.Pr
 }
 
 // ConfirmUploads is the resolver for the confirmUploads field.
-func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.ConfirmUploadInput) ([]*model.File, error) {
+func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.ConfirmUploadInput) (*model.ConfirmUploadsResponse, error) {
 	userID := utils.GetUserID(ctx)
 	if !userID.Valid {
 		return nil, fmt.Errorf("access denied")
 	}
 
-	var successfullyConfirmedFiles []*model.File
+	var confirmedFiles []*model.File
+	var failedUploads []*model.FailedUpload
 
 	for _, upload := range uploads {
 		tx, err := r.DBPool.Begin(ctx)
@@ -291,51 +297,40 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 		}
 		qtx := r.DB.WithTx(&tx)
 
-		getObjectInput := &s3.GetObjectInput{
+		object, err := r.S3Client.GetObject(ctx, &s3.GetObjectInput{
 			Bucket: &r.Cfg.S3BucketName,
 			Key:    &upload.Hash,
 			Range:  aws.String("bytes=0-511"),
-		}
-
-		object, err := r.S3Client.GetObject(ctx, getObjectInput)
+		})
 		if err != nil {
-			log.Printf("Verification failed for hash %s: could not get object from MinIO: %v", upload.Hash, err)
+			failedUploads = append(failedUploads, &model.FailedUpload{Hash: upload.Hash, Reason: "Object not found"})
+			log.Printf("Failed to get object for hash %s: %v", upload.Hash, err)
 			continue
 		}
 
-		magicBytes, err := io.ReadAll(object.Body)
+		data, err := io.ReadAll(object.Body)
 		object.Body.Close()
 		if err != nil {
-			log.Printf("Verification failed for hash %s: could not read magic bytes: %v", upload.Hash, err)
+			failedUploads = append(failedUploads, &model.FailedUpload{Hash: upload.Hash, Reason: "Failed to read magic bytes"})
+			log.Printf("Failed to read magic bytes for hash %s: %v", upload.Hash, err)
 			continue
 		}
 
-		verifiedMimeType := http.DetectContentType(magicBytes)
+		detectedMIME := mimetype.Detect(data).String()
+		verifiedPrimary := utils.ExtractPrimaryMIME(detectedMIME)
+		expectedPrimary := utils.ExtractPrimaryMIME(upload.MimeType)
 
-		if verifiedMimeType != upload.MimeType {
-			log.Printf("MIME typename mismatch for hash %s: client said %s, but content is %s",
-				upload.Hash, upload.MimeType, verifiedMimeType)
-
+		if !utils.IsMimeMatch(verifiedPrimary, expectedPrimary) {
+			failedUploads = append(failedUploads, &model.FailedUpload{Hash: upload.Hash, Reason: "MIME mismatch"})
+			log.Printf("MIME mismatch for hash %s: client said %s, detected %s",
+				upload.Hash, upload.MimeType, detectedMIME)
 			continue
 		}
 
-		// Verify size and mime type
-		contentRange := *object.ContentRange
-		parts := strings.Split(contentRange, "/")
-		if len(parts) < 2 {
-			log.Printf("Verification failed for hash %s: invalid Content-Range header", upload.Hash)
-			continue
-		}
-		fullSizeStr := parts[1]
-		verifiedSize, err := strconv.ParseInt(fullSizeStr, 10, 64)
-		if err != nil {
-			log.Printf("Verification failed for hash %s: could not parse Content-Range header: %v", upload.Hash, err)
-			continue
-		}
-
-		if verifiedSize != int64(upload.Size) {
-			log.Printf("Verification mismatch for hash %s: client said %d/%s, server found %d/%s",
-				upload.Hash, upload.Size, upload.MimeType, verifiedSize, verifiedMimeType)
+		validSize, err := utils.VerifySize(*object.ContentRange, upload.Size)
+		if err != nil || !validSize {
+			failedUploads = append(failedUploads, &model.FailedUpload{Hash: upload.Hash, Reason: "Size mismatch"})
+			log.Printf("Size mismatch for hash %s: client %d, server %s", upload.Hash, upload.Size, *object.ContentRange)
 			continue
 		}
 
@@ -345,19 +340,19 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 			SizeBytes:   int64(upload.Size),
 			StoragePath: fmt.Sprintf("%s/%s", r.Cfg.S3BucketName, upload.Hash),
 		}
+
 		physicalFile, err := qtx.CreatePhysicalFile(ctx, physFileParams)
 		if err != nil {
+			failedUploads = append(failedUploads, &model.FailedUpload{Hash: upload.Hash, Reason: "Failed to create physical file"})
 			tx.Rollback(ctx)
 			continue
 		}
 
 		var pgFolderID pgtype.UUID
 		if upload.FolderID != nil {
-			parsedFolderID, err := uuid.Parse(*upload.FolderID)
-			if err != nil {
-				continue
+			if parsedFolderID, err := uuid.Parse(*upload.FolderID); err == nil {
+				pgFolderID = pgtype.UUID{Bytes: parsedFolderID, Valid: true}
 			}
-			pgFolderID = pgtype.UUID{Bytes: parsedFolderID, Valid: true}
 		}
 
 		fileRefParams := postgres.CreateFileReferenceParams{
@@ -368,6 +363,7 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 		}
 		newFile, err := qtx.CreateFileReference(ctx, fileRefParams)
 		if err != nil {
+			failedUploads = append(failedUploads, &model.FailedUpload{Hash: upload.Hash, Reason: "Failed to create file reference"})
 			tx.Rollback(ctx)
 			continue
 		}
@@ -376,14 +372,16 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 			return nil, err
 		}
 
-		successfullyConfirmedFiles = append(successfullyConfirmedFiles, &model.File{
+		confirmedFiles = append(confirmedFiles, &model.File{
 			ID:         newFile.ID.String(),
 			Filename:   newFile.Filename,
 			UploadDate: newFile.UploadDate.Time,
 		})
 	}
-
-	return successfullyConfirmedFiles, nil
+	return &model.ConfirmUploadsResponse{
+		Files:         confirmedFiles,
+		FailedUploads: failedUploads,
+	}, nil
 }
 
 // GetFilesInFolder is the resolver for the getFilesInFolder field.
@@ -524,8 +522,8 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 	return folders, nil
 }
 
-// FolderDetails is the resolver for the folderDetails field.
-func (r *queryResolver) FolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error) {
+// GetFolderDetails is the resolver for the getFolderDetails field.
+func (r *queryResolver) GetFolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error) {
 	userID := utils.GetUserID(ctx)
 	if !userID.Valid {
 		return nil, fmt.Errorf("access denied")

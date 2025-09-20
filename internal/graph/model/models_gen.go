@@ -25,9 +25,19 @@ type ConfirmUploadInput struct {
 	FolderID *string `json:"folderId,omitempty"`
 }
 
+type ConfirmUploadsResponse struct {
+	Files         []*File         `json:"files"`
+	FailedUploads []*FailedUpload `json:"failedUploads"`
+}
+
 type DownloadURL struct {
 	DownloadURL string `json:"downloadURL"`
 	Filename    string `json:"filename"`
+}
+
+type FailedUpload struct {
+	Hash   string `json:"hash"`
+	Reason string `json:"reason"`
 }
 
 type File struct {

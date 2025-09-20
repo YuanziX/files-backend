@@ -30,7 +30,7 @@ type Querier interface {
 	GetFileForDownload(ctx context.Context, id pgtype.UUID) (GetFileForDownloadRow, error)
 	GetFileShares(ctx context.Context, arg GetFileSharesParams) ([]Share, error)
 	GetFolderByID(ctx context.Context, id pgtype.UUID) (Folder, error)
-	GetFolderPath(ctx context.Context, arg GetFolderPathParams) (string, error)
+	GetFolderPath(ctx context.Context, arg GetFolderPathParams) (GetFolderPathRow, error)
 	GetFolderShares(ctx context.Context, arg GetFolderSharesParams) ([]Share, error)
 	GetMyShares(ctx context.Context, ownerID pgtype.UUID) ([]Share, error)
 	GetPhysicalFileByHash(ctx context.Context, contentHash string) (PhysicalFile, error)

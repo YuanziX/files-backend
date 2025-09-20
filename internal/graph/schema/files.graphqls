@@ -13,7 +13,8 @@ type Folder {
   name: String!
   createdAt: Time!
   parentID: ID
-  Path: String!
+  path: String!
+  realPath: String!
   childrenFolders: [Folder!]!
   childrenFiles: [File!]!
 }
@@ -48,10 +49,20 @@ input ConfirmUploadInput {
   folderId: ID
 }
 
+type FailedUpload {
+  hash: String!
+  reason: String!
+}
+
+type ConfirmUploadsResponse {
+  files: [File!]!
+  failedUploads: [FailedUpload!]!
+}
+
 extend type Query {
   getFilesInFolder(folderId: ID, publicToken: String): [File!]! @auth
   getFoldersInFolder(folderId: ID, publicToken: String): [Folder!]! @auth
-  folderDetails(folderId: ID!, publicToken: String): Folder @auth
+  getFolderDetails(folderId: ID!, publicToken: String): Folder @auth
 }
 
 extend type Mutation {
@@ -62,5 +73,5 @@ extend type Mutation {
   deleteFolder(folderId: ID!): Boolean! @auth
 
   preUploadCheck(files: [PreUploadFileInput!]!): PreUploadCheckResponse! @auth
-  confirmUploads(uploads: [ConfirmUploadInput!]!): [File!]! @auth
+  confirmUploads(uploads: [ConfirmUploadInput!]!): ConfirmUploadsResponse! @auth
 }

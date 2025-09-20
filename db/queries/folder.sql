@@ -1,9 +1,9 @@
 -- name: GetFolderPath :one
-SELECT path FROM folders WHERE id = $1 AND owner_id = $2;
+SELECT path, real_path FROM folders WHERE id = $1 AND owner_id = $2;
 
 -- name: CreateFolder :one
-INSERT INTO folders (id, owner_id, parent_id, name, path)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO folders (id, owner_id, parent_id, name, path, real_path)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: ListRootFoldersByOwner :many
