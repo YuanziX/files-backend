@@ -15,11 +15,11 @@ extend type Query {
 }
 
 extend type Mutation {
-  shareFileWithUser(fileId: ID!, userId: ID!): ID! @auth
-  unshareFileWithUser(fileId: ID!, userId: ID!): Boolean! @auth
+  shareFileWithUser(fileId: ID!, email: String!): ID! @auth
+  unshareFileWithUser(fileId: ID!, email: String!): Boolean! @auth
 
-  shareFolderWithUser(folderId: ID!, userId: ID!): ID! @auth
-  unshareFolderWithUser(folderId: ID!, userId: ID!): Boolean! @auth
+  shareFolderWithUser(folderId: ID!, email: String!): ID! @auth
+  unshareFolderWithUser(folderId: ID!, email: String!): Boolean! @auth
 
   shareFilePublic(fileId: ID!): String! @auth
   shareFolderPublic(folderId: ID!): String! @auth

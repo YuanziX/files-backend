@@ -35,10 +35,10 @@ type MutationResolver interface {
 	DeleteFolder(ctx context.Context, folderID string) (bool, error)
 	PreUploadCheck(ctx context.Context, files []*model.PreUploadFileInput) (*model.PreUploadCheckResponse, error)
 	ConfirmUploads(ctx context.Context, uploads []*model.ConfirmUploadInput) (*model.ConfirmUploadsResponse, error)
-	ShareFileWithUser(ctx context.Context, fileID string, userID string) (string, error)
-	UnshareFileWithUser(ctx context.Context, fileID string, userID string) (bool, error)
-	ShareFolderWithUser(ctx context.Context, folderID string, userID string) (string, error)
-	UnshareFolderWithUser(ctx context.Context, folderID string, userID string) (bool, error)
+	ShareFileWithUser(ctx context.Context, fileID string, email string) (string, error)
+	UnshareFileWithUser(ctx context.Context, fileID string, email string) (bool, error)
+	ShareFolderWithUser(ctx context.Context, folderID string, email string) (string, error)
+	UnshareFolderWithUser(ctx context.Context, folderID string, email string) (bool, error)
 	ShareFilePublic(ctx context.Context, fileID string) (string, error)
 	ShareFolderPublic(ctx context.Context, folderID string) (string, error)
 	RevokePubliclyShared(ctx context.Context, publicToken string) (bool, error)
@@ -187,11 +187,11 @@ func (ec *executionContext) field_Mutation_shareFileWithUser_args(ctx context.Co
 		return nil, err
 	}
 	args["fileId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNID2string)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
-	args["userId"] = arg1
+	args["email"] = arg1
 	return args, nil
 }
 
@@ -214,11 +214,11 @@ func (ec *executionContext) field_Mutation_shareFolderWithUser_args(ctx context.
 		return nil, err
 	}
 	args["folderId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNID2string)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
-	args["userId"] = arg1
+	args["email"] = arg1
 	return args, nil
 }
 
@@ -230,11 +230,11 @@ func (ec *executionContext) field_Mutation_unshareFileWithUser_args(ctx context.
 		return nil, err
 	}
 	args["fileId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNID2string)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
-	args["userId"] = arg1
+	args["email"] = arg1
 	return args, nil
 }
 
@@ -246,11 +246,11 @@ func (ec *executionContext) field_Mutation_unshareFolderWithUser_args(ctx contex
 		return nil, err
 	}
 	args["folderId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNID2string)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
-	args["userId"] = arg1
+	args["email"] = arg1
 	return args, nil
 }
 
@@ -1310,7 +1310,7 @@ func (ec *executionContext) _Mutation_shareFileWithUser(ctx context.Context, fie
 		ec.fieldContext_Mutation_shareFileWithUser,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().ShareFileWithUser(ctx, fc.Args["fileId"].(string), fc.Args["userId"].(string))
+			return ec.resolvers.Mutation().ShareFileWithUser(ctx, fc.Args["fileId"].(string), fc.Args["email"].(string))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -1364,7 +1364,7 @@ func (ec *executionContext) _Mutation_unshareFileWithUser(ctx context.Context, f
 		ec.fieldContext_Mutation_unshareFileWithUser,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UnshareFileWithUser(ctx, fc.Args["fileId"].(string), fc.Args["userId"].(string))
+			return ec.resolvers.Mutation().UnshareFileWithUser(ctx, fc.Args["fileId"].(string), fc.Args["email"].(string))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -1418,7 +1418,7 @@ func (ec *executionContext) _Mutation_shareFolderWithUser(ctx context.Context, f
 		ec.fieldContext_Mutation_shareFolderWithUser,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().ShareFolderWithUser(ctx, fc.Args["folderId"].(string), fc.Args["userId"].(string))
+			return ec.resolvers.Mutation().ShareFolderWithUser(ctx, fc.Args["folderId"].(string), fc.Args["email"].(string))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -1472,7 +1472,7 @@ func (ec *executionContext) _Mutation_unshareFolderWithUser(ctx context.Context,
 		ec.fieldContext_Mutation_unshareFolderWithUser,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UnshareFolderWithUser(ctx, fc.Args["folderId"].(string), fc.Args["userId"].(string))
+			return ec.resolvers.Mutation().UnshareFolderWithUser(ctx, fc.Args["folderId"].(string), fc.Args["email"].(string))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next

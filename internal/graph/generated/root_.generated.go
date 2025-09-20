@@ -96,11 +96,11 @@ type ComplexityRoot struct {
 		RegisterUser          func(childComplexity int, input model.RegisterUser) int
 		RevokePubliclyShared  func(childComplexity int, publicToken string) int
 		ShareFilePublic       func(childComplexity int, fileID string) int
-		ShareFileWithUser     func(childComplexity int, fileID string, userID string) int
+		ShareFileWithUser     func(childComplexity int, fileID string, email string) int
 		ShareFolderPublic     func(childComplexity int, folderID string) int
-		ShareFolderWithUser   func(childComplexity int, folderID string, userID string) int
-		UnshareFileWithUser   func(childComplexity int, fileID string, userID string) int
-		UnshareFolderWithUser func(childComplexity int, folderID string, userID string) int
+		ShareFolderWithUser   func(childComplexity int, folderID string, email string) int
+		UnshareFileWithUser   func(childComplexity int, fileID string, email string) int
+		UnshareFolderWithUser func(childComplexity int, folderID string, email string) int
 	}
 
 	PreSignedURL struct {
@@ -439,7 +439,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ShareFileWithUser(childComplexity, args["fileId"].(string), args["userId"].(string)), true
+		return e.complexity.Mutation.ShareFileWithUser(childComplexity, args["fileId"].(string), args["email"].(string)), true
 
 	case "Mutation.shareFolderPublic":
 		if e.complexity.Mutation.ShareFolderPublic == nil {
@@ -463,7 +463,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ShareFolderWithUser(childComplexity, args["folderId"].(string), args["userId"].(string)), true
+		return e.complexity.Mutation.ShareFolderWithUser(childComplexity, args["folderId"].(string), args["email"].(string)), true
 
 	case "Mutation.unshareFileWithUser":
 		if e.complexity.Mutation.UnshareFileWithUser == nil {
@@ -475,7 +475,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UnshareFileWithUser(childComplexity, args["fileId"].(string), args["userId"].(string)), true
+		return e.complexity.Mutation.UnshareFileWithUser(childComplexity, args["fileId"].(string), args["email"].(string)), true
 
 	case "Mutation.unshareFolderWithUser":
 		if e.complexity.Mutation.UnshareFolderWithUser == nil {
@@ -487,7 +487,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UnshareFolderWithUser(childComplexity, args["folderId"].(string), args["userId"].(string)), true
+		return e.complexity.Mutation.UnshareFolderWithUser(childComplexity, args["folderId"].(string), args["email"].(string)), true
 
 	case "PreSignedURL.filename":
 		if e.complexity.PreSignedURL.Filename == nil {
@@ -895,11 +895,11 @@ extend type Query {
 }
 
 extend type Mutation {
-  shareFileWithUser(fileId: ID!, userId: ID!): ID! @auth
-  unshareFileWithUser(fileId: ID!, userId: ID!): Boolean! @auth
+  shareFileWithUser(fileId: ID!, email: String!): ID! @auth
+  unshareFileWithUser(fileId: ID!, email: String!): Boolean! @auth
 
-  shareFolderWithUser(folderId: ID!, userId: ID!): ID! @auth
-  unshareFolderWithUser(folderId: ID!, userId: ID!): Boolean! @auth
+  shareFolderWithUser(folderId: ID!, email: String!): ID! @auth
+  unshareFolderWithUser(folderId: ID!, email: String!): Boolean! @auth
 
   shareFilePublic(fileId: ID!): String! @auth
   shareFolderPublic(folderId: ID!): String! @auth

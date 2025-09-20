@@ -14,7 +14,7 @@ import (
 )
 
 // ShareFileWithUser is the resolver for the shareFileWithUser field.
-func (r *mutationResolver) ShareFileWithUser(ctx context.Context, fileID string, userID string) (string, error) {
+func (r *mutationResolver) ShareFileWithUser(ctx context.Context, fileID string, email string) (string, error) {
 	currentUserID := utils.GetUserID(ctx)
 
 	fileUUID := utils.GetPgUUID(&fileID)
@@ -22,9 +22,9 @@ func (r *mutationResolver) ShareFileWithUser(ctx context.Context, fileID string,
 		return "", fmt.Errorf("invalid file ID")
 	}
 
-	userUUID := utils.GetPgUUID(&userID)
-	if !userUUID.Valid {
-		return "", fmt.Errorf("invalid user ID")
+	user, err := r.DB.GetUserByEmail(ctx, email)
+	if err != nil {
+		return "", fmt.Errorf("failed to find user by email: %w", err)
 	}
 
 	// Check if the current user owns the file
@@ -44,7 +44,7 @@ func (r *mutationResolver) ShareFileWithUser(ctx context.Context, fileID string,
 	err = r.DB.ShareFileWithUser(ctx, postgres.ShareFileWithUserParams{
 		FileID:           fileUUID,
 		OwnerID:          currentUserID,
-		SharedWithUserID: userUUID,
+		SharedWithUserID: user.ID,
 	})
 
 	if err != nil {
@@ -54,7 +54,7 @@ func (r *mutationResolver) ShareFileWithUser(ctx context.Context, fileID string,
 }
 
 // UnshareFileWithUser is the resolver for the unshareFileWithUser field.
-func (r *mutationResolver) UnshareFileWithUser(ctx context.Context, fileID string, userID string) (bool, error) {
+func (r *mutationResolver) UnshareFileWithUser(ctx context.Context, fileID string, email string) (bool, error) {
 	currentUserID := utils.GetUserID(ctx)
 
 	fileUUID := utils.GetPgUUID(&fileID)
@@ -62,9 +62,9 @@ func (r *mutationResolver) UnshareFileWithUser(ctx context.Context, fileID strin
 		return false, fmt.Errorf("invalid file ID")
 	}
 
-	userUUID := utils.GetPgUUID(&userID)
-	if !userUUID.Valid {
-		return false, fmt.Errorf("invalid user ID")
+	user, err := r.DB.GetUserByEmail(ctx, email)
+	if err != nil {
+		return false, fmt.Errorf("failed to find user by email: %w", err)
 	}
 
 	// Check if the current user owns the file
@@ -84,7 +84,7 @@ func (r *mutationResolver) UnshareFileWithUser(ctx context.Context, fileID strin
 	err = r.DB.RevokeUserShare(ctx, postgres.RevokeUserShareParams{
 		OwnerID:          currentUserID,
 		FileID:           fileUUID,
-		SharedWithUserID: userUUID,
+		SharedWithUserID: user.ID,
 	})
 
 	if err != nil {
@@ -95,7 +95,7 @@ func (r *mutationResolver) UnshareFileWithUser(ctx context.Context, fileID strin
 }
 
 // ShareFolderWithUser is the resolver for the shareFolderWithUser field.
-func (r *mutationResolver) ShareFolderWithUser(ctx context.Context, folderID string, userID string) (string, error) {
+func (r *mutationResolver) ShareFolderWithUser(ctx context.Context, folderID string, email string) (string, error) {
 	currentUserID := utils.GetUserID(ctx)
 
 	folderUUID := utils.GetPgUUID(&folderID)
@@ -103,9 +103,9 @@ func (r *mutationResolver) ShareFolderWithUser(ctx context.Context, folderID str
 		return "", fmt.Errorf("invalid folder ID")
 	}
 
-	userUUID := utils.GetPgUUID(&userID)
-	if !userUUID.Valid {
-		return "", fmt.Errorf("invalid user ID")
+	user, err := r.DB.GetUserByEmail(ctx, email)
+	if err != nil {
+		return "", fmt.Errorf("failed to find user by email: %w", err)
 	}
 
 	// Check if the current user owns the folder
@@ -125,7 +125,7 @@ func (r *mutationResolver) ShareFolderWithUser(ctx context.Context, folderID str
 	err = r.DB.ShareFolderWithUser(ctx, postgres.ShareFolderWithUserParams{
 		FolderID:         folderUUID,
 		OwnerID:          currentUserID,
-		SharedWithUserID: userUUID,
+		SharedWithUserID: user.ID,
 	})
 
 	if err != nil {
@@ -135,7 +135,7 @@ func (r *mutationResolver) ShareFolderWithUser(ctx context.Context, folderID str
 }
 
 // UnshareFolderWithUser is the resolver for the unshareFolderWithUser field.
-func (r *mutationResolver) UnshareFolderWithUser(ctx context.Context, folderID string, userID string) (bool, error) {
+func (r *mutationResolver) UnshareFolderWithUser(ctx context.Context, folderID string, email string) (bool, error) {
 	currentUserID := utils.GetUserID(ctx)
 
 	folderUUID := utils.GetPgUUID(&folderID)
@@ -143,9 +143,9 @@ func (r *mutationResolver) UnshareFolderWithUser(ctx context.Context, folderID s
 		return false, fmt.Errorf("invalid folder ID")
 	}
 
-	userUUID := utils.GetPgUUID(&userID)
-	if !userUUID.Valid {
-		return false, fmt.Errorf("invalid user ID")
+	user, err := r.DB.GetUserByEmail(ctx, email)
+	if err != nil {
+		return false, fmt.Errorf("failed to find user by email: %w", err)
 	}
 
 	// Check if the current user owns the folder
@@ -165,7 +165,7 @@ func (r *mutationResolver) UnshareFolderWithUser(ctx context.Context, folderID s
 	err = r.DB.RevokeUserShare(ctx, postgres.RevokeUserShareParams{
 		OwnerID:          currentUserID,
 		FileID:           folderUUID,
-		SharedWithUserID: userUUID,
+		SharedWithUserID: user.ID,
 	})
 
 	if err != nil {
