@@ -89,8 +89,9 @@ func (r *mutationResolver) GetDownloadURL(ctx context.Context, fileID string, pu
 	objectKey := fileToDownload.ContentHash
 
 	req, err := r.S3PresignClient.PresignGetObject(ctx, &s3.GetObjectInput{
-		Bucket: &r.Cfg.S3BucketName,
-		Key:    &objectKey,
+		Bucket:                     &r.Cfg.S3BucketName,
+		Key:                        &objectKey,
+		ResponseContentDisposition: aws.String(fmt.Sprintf(`attachment; filename="%s"`, fileToDownload.Filename)),
 	}, s3.WithPresignExpires(expiry))
 	if err != nil {
 		return nil, fmt.Errorf("could not generate download URL: %w", err)
