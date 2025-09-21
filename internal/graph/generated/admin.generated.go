@@ -37,7 +37,7 @@ type MutationResolver interface {
 	Login(ctx context.Context, input model.LoginUser) (*model.AuthResponse, error)
 }
 type QueryResolver interface {
-	GetFiles(ctx context.Context, folderID string, limit int32, pageNo int32) (*model.GetFilesResponse, error)
+	GetFiles(ctx context.Context, limit *int32, pageNo *int32) (*model.GetFilesResponse, error)
 	DownloadFile(ctx context.Context, fileID string) (*model.DownloadFileResponse, error)
 	GetUserByID(ctx context.Context, userID string) (*postgres.User, error)
 	GetFile(ctx context.Context, fileID string, publicToken *string) (*model.File, error)
@@ -344,21 +344,16 @@ func (ec *executionContext) field_Query_getFilesInFolder_args(ctx context.Contex
 func (ec *executionContext) field_Query_getFiles_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "folderID", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint32)
 	if err != nil {
 		return nil, err
 	}
-	args["folderID"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalNInt2int32)
+	args["limit"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "pageNo", ec.unmarshalOInt2ᚖint32)
 	if err != nil {
 		return nil, err
 	}
-	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "pageNo", ec.unmarshalNInt2int32)
-	if err != nil {
-		return nil, err
-	}
-	args["pageNo"] = arg2
+	args["pageNo"] = arg1
 	return args, nil
 }
 
@@ -1810,7 +1805,7 @@ func (ec *executionContext) _Query_getFiles(ctx context.Context, field graphql.C
 		ec.fieldContext_Query_getFiles,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().GetFiles(ctx, fc.Args["folderID"].(string), fc.Args["limit"].(int32), fc.Args["pageNo"].(int32))
+			return ec.resolvers.Query().GetFiles(ctx, fc.Args["limit"].(*int32), fc.Args["pageNo"].(*int32))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next

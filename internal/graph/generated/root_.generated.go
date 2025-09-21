@@ -147,7 +147,7 @@ type ComplexityRoot struct {
 		DownloadFile       func(childComplexity int, fileID string) int
 		GetFile            func(childComplexity int, fileID string, publicToken *string) int
 		GetFileShares      func(childComplexity int, fileID string) int
-		GetFiles           func(childComplexity int, folderID string, limit int32, pageNo int32) int
+		GetFiles           func(childComplexity int, limit *int32, pageNo *int32) int
 		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string, sort *model.FileSortInput, filter *model.FileFilterInput) int
 		GetFolderDetails   func(childComplexity int, folderID string, publicToken *string) int
 		GetFolderShares    func(childComplexity int, folderID string) int
@@ -728,7 +728,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.GetFiles(childComplexity, args["folderID"].(string), args["limit"].(int32), args["pageNo"].(int32)), true
+		return e.complexity.Query.GetFiles(childComplexity, args["limit"].(*int32), args["pageNo"].(*int32)), true
 
 	case "Query.getFilesInFolder":
 		if e.complexity.Query.GetFilesInFolder == nil {
@@ -1046,8 +1046,7 @@ extend type Mutation {
 }
 
 extend type Query {
-  getFiles(folderID: ID!, limit: Int!, pageNo: Int!): GetFilesResponse!
-    @hasRole(role: "admin")
+  getFiles(limit: Int, pageNo: Int): GetFilesResponse! @hasRole(role: "admin")
   downloadFile(fileID: ID!): DownloadFileResponse! @hasRole(role: "admin")
   getUserByID(userID: ID!): User! @hasRole(role: "admin")
 }

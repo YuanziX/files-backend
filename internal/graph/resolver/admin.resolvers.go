@@ -40,7 +40,7 @@ func (r *mutationResolver) CreateAdminUser(ctx context.Context, email string, pa
 }
 
 // GetFiles is the resolver for the getFiles field.
-func (r *queryResolver) GetFiles(ctx context.Context, folderID string, limit int32, pageNo int32) (*model.GetFilesResponse, error) {
+func (r *queryResolver) GetFiles(ctx context.Context, limit *int32, pageNo *int32) (*model.GetFilesResponse, error) {
 	adminId := utils.GetUserID(ctx)
 	if !adminId.Valid {
 		return nil, fmt.Errorf("access denied: you must be logged in")
@@ -49,9 +49,18 @@ func (r *queryResolver) GetFiles(ctx context.Context, folderID string, limit int
 		return nil, fmt.Errorf("access denied: you must be an admin")
 	}
 
+	var useLimit, usePageNo int32 = 10, 1
+
+	if limit != nil && *limit > 0 {
+		useLimit = *limit
+	}
+	if pageNo != nil && *pageNo > 0 {
+		usePageNo = *pageNo
+	}
+
 	files, err := r.DB.GetAllFilesForAdmin(ctx, postgres.GetAllFilesForAdminParams{
-		Limit:  limit,
-		Offset: (pageNo - 1) * limit,
+		Limit:  useLimit,
+		Offset: (usePageNo - 1) * useLimit,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get files: %v", err)
@@ -80,9 +89,9 @@ func (r *queryResolver) GetFiles(ctx context.Context, folderID string, limit int
 		Pagination: &model.Pagination{
 			Count:      int32(len(fileModels)),
 			TotalCount: int32(totalCount),
-			PageNo:     pageNo,
-			TotalPages: (int32(totalCount) + limit - 1) / limit,
-			Limit:      limit,
+			PageNo:     usePageNo,
+			TotalPages: (int32(totalCount) + useLimit - 1) / useLimit,
+			Limit:      useLimit,
 		},
 	}, nil
 }
