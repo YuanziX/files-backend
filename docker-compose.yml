@@ -1,0 +1,34 @@
+services:
+  app:
+    build: .
+    container_name: files-backend
+    env_file: .env.docker
+    depends_on:
+      - db
+      - s3
+    ports:
+      - "${PORT}:${PORT}"
+
+  db:
+    image: postgres:15
+    container_name: files-postgres
+    restart: always
+    env_file: .env.docker
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_DB: ${POSTGRES_DB:-balkan}
+    ports:
+      - "5432:5432"
+
+  s3:
+    image: minio/minio:latest
+    container_name: files-minio
+    command: server /data --console-address ":9001"
+    env_file: .env.docker
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
