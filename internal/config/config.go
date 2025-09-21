@@ -20,8 +20,10 @@ type Config struct {
 }
 
 func New() *Config {
-	if err := godotenv.Load(".env", ".env.docker"); err != nil {
-		log.Printf("Error loading .env files: %v", err)
+	err1 := godotenv.Load(".env")
+	err2 := godotenv.Load(".env.docker")
+	if err1 != nil || err2 != nil {
+		log.Printf("Error loading .env files: %v, %v", err1, err2)
 	}
 
 	return &Config{
