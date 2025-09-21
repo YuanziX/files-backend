@@ -46,6 +46,16 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AdminFile struct {
+		DownloadCount func(childComplexity int) int
+		Filename      func(childComplexity int) int
+		ID            func(childComplexity int) int
+		MimeType      func(childComplexity int) int
+		OwnerID       func(childComplexity int) int
+		Size          func(childComplexity int) int
+		UploadDate    func(childComplexity int) int
+	}
+
 	AuthResponse struct {
 		Token func(childComplexity int) int
 		User  func(childComplexity int) int
@@ -54,6 +64,11 @@ type ComplexityRoot struct {
 	ConfirmUploadsResponse struct {
 		FailedUploads func(childComplexity int) int
 		Files         func(childComplexity int) int
+	}
+
+	DownloadFileResponse struct {
+		Filename func(childComplexity int) int
+		URL      func(childComplexity int) int
 	}
 
 	DownloadURL struct {
@@ -85,6 +100,11 @@ type ComplexityRoot struct {
 		RealPath        func(childComplexity int) int
 	}
 
+	GetFilesResponse struct {
+		Files      func(childComplexity int) int
+		Pagination func(childComplexity int) int
+	}
+
 	Mutation struct {
 		ConfirmUploads        func(childComplexity int, uploads []*model.ConfirmUploadInput) int
 		CreateFolder          func(childComplexity int, name string, parentID *string) int
@@ -103,6 +123,14 @@ type ComplexityRoot struct {
 		UnshareFolderWithUser func(childComplexity int, folderID string, email string) int
 	}
 
+	Pagination struct {
+		Count      func(childComplexity int) int
+		Limit      func(childComplexity int) int
+		PageNo     func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+		TotalPages func(childComplexity int) int
+	}
+
 	PreSignedURL struct {
 		Filename  func(childComplexity int) int
 		Hash      func(childComplexity int) int
@@ -115,13 +143,16 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		DownloadFile       func(childComplexity int, fileID string) int
 		GetFile            func(childComplexity int, fileID string, publicToken *string) int
 		GetFileShares      func(childComplexity int, fileID string) int
+		GetFiles           func(childComplexity int, folderID string, limit int32, pageNo int32) int
 		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string, sort *model.FileSortInput, filter *model.FileFilterInput) int
 		GetFolderDetails   func(childComplexity int, folderID string, publicToken *string) int
 		GetFolderShares    func(childComplexity int, folderID string) int
 		GetFoldersInFolder func(childComplexity int, folderID *string, publicToken *string, sort *model.FolderSortInput, filter *model.FolderFilterInput) int
 		GetMyShares        func(childComplexity int) int
+		GetUserByID        func(childComplexity int, userID string) int
 		Me                 func(childComplexity int) int
 		SearchFiles        func(childComplexity int, query string, search string) int
 	}
@@ -164,6 +195,55 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	_ = ec
 	switch typeName + "." + field {
 
+	case "AdminFile.downloadCount":
+		if e.complexity.AdminFile.DownloadCount == nil {
+			break
+		}
+
+		return e.complexity.AdminFile.DownloadCount(childComplexity), true
+
+	case "AdminFile.filename":
+		if e.complexity.AdminFile.Filename == nil {
+			break
+		}
+
+		return e.complexity.AdminFile.Filename(childComplexity), true
+
+	case "AdminFile.id":
+		if e.complexity.AdminFile.ID == nil {
+			break
+		}
+
+		return e.complexity.AdminFile.ID(childComplexity), true
+
+	case "AdminFile.mimeType":
+		if e.complexity.AdminFile.MimeType == nil {
+			break
+		}
+
+		return e.complexity.AdminFile.MimeType(childComplexity), true
+
+	case "AdminFile.ownerID":
+		if e.complexity.AdminFile.OwnerID == nil {
+			break
+		}
+
+		return e.complexity.AdminFile.OwnerID(childComplexity), true
+
+	case "AdminFile.size":
+		if e.complexity.AdminFile.Size == nil {
+			break
+		}
+
+		return e.complexity.AdminFile.Size(childComplexity), true
+
+	case "AdminFile.uploadDate":
+		if e.complexity.AdminFile.UploadDate == nil {
+			break
+		}
+
+		return e.complexity.AdminFile.UploadDate(childComplexity), true
+
 	case "AuthResponse.token":
 		if e.complexity.AuthResponse.Token == nil {
 			break
@@ -191,6 +271,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ConfirmUploadsResponse.Files(childComplexity), true
+
+	case "DownloadFileResponse.filename":
+		if e.complexity.DownloadFileResponse.Filename == nil {
+			break
+		}
+
+		return e.complexity.DownloadFileResponse.Filename(childComplexity), true
+
+	case "DownloadFileResponse.url":
+		if e.complexity.DownloadFileResponse.URL == nil {
+			break
+		}
+
+		return e.complexity.DownloadFileResponse.URL(childComplexity), true
 
 	case "DownloadURL.downloadURL":
 		if e.complexity.DownloadURL.DownloadURL == nil {
@@ -310,6 +404,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Folder.RealPath(childComplexity), true
+
+	case "GetFilesResponse.files":
+		if e.complexity.GetFilesResponse.Files == nil {
+			break
+		}
+
+		return e.complexity.GetFilesResponse.Files(childComplexity), true
+
+	case "GetFilesResponse.pagination":
+		if e.complexity.GetFilesResponse.Pagination == nil {
+			break
+		}
+
+		return e.complexity.GetFilesResponse.Pagination(childComplexity), true
 
 	case "Mutation.confirmUploads":
 		if e.complexity.Mutation.ConfirmUploads == nil {
@@ -491,6 +599,41 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.UnshareFolderWithUser(childComplexity, args["folderId"].(string), args["email"].(string)), true
 
+	case "Pagination.count":
+		if e.complexity.Pagination.Count == nil {
+			break
+		}
+
+		return e.complexity.Pagination.Count(childComplexity), true
+
+	case "Pagination.limit":
+		if e.complexity.Pagination.Limit == nil {
+			break
+		}
+
+		return e.complexity.Pagination.Limit(childComplexity), true
+
+	case "Pagination.pageNo":
+		if e.complexity.Pagination.PageNo == nil {
+			break
+		}
+
+		return e.complexity.Pagination.PageNo(childComplexity), true
+
+	case "Pagination.totalCount":
+		if e.complexity.Pagination.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.Pagination.TotalCount(childComplexity), true
+
+	case "Pagination.totalPages":
+		if e.complexity.Pagination.TotalPages == nil {
+			break
+		}
+
+		return e.complexity.Pagination.TotalPages(childComplexity), true
+
 	case "PreSignedURL.filename":
 		if e.complexity.PreSignedURL.Filename == nil {
 			break
@@ -526,6 +669,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PreUploadCheckResponse.NewFiles(childComplexity), true
 
+	case "Query.downloadFile":
+		if e.complexity.Query.DownloadFile == nil {
+			break
+		}
+
+		args, err := ec.field_Query_downloadFile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.DownloadFile(childComplexity, args["fileID"].(string)), true
+
 	case "Query.getFile":
 		if e.complexity.Query.GetFile == nil {
 			break
@@ -549,6 +704,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.GetFileShares(childComplexity, args["fileId"].(string)), true
+
+	case "Query.getFiles":
+		if e.complexity.Query.GetFiles == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFiles_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetFiles(childComplexity, args["folderID"].(string), args["limit"].(int32), args["pageNo"].(int32)), true
 
 	case "Query.getFilesInFolder":
 		if e.complexity.Query.GetFilesInFolder == nil {
@@ -604,6 +771,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.GetMyShares(childComplexity), true
+
+	case "Query.getUserByID":
+		if e.complexity.Query.GetUserByID == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getUserByID_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetUserByID(childComplexity, args["userID"].(string)), true
 
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
@@ -821,6 +1000,41 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
+	{Name: "../schema/admin.graphqls", Input: `type AdminFile {
+  id: ID!
+  ownerID: ID!
+  filename: String!
+  mimeType: String!
+  size: Int!
+  uploadDate: Time!
+  downloadCount: Int!
+}
+
+type Pagination {
+  count: Int!
+  totalCount: Int!
+  pageNo: Int!
+  totalPages: Int!
+  limit: Int!
+}
+
+type GetFilesResponse {
+  files: [AdminFile!]!
+  pagination: Pagination!
+}
+
+type DownloadFileResponse {
+  url: String!
+  filename: String!
+}
+
+extend type Query {
+  getFiles(folderID: ID!, limit: Int!, pageNo: Int!): GetFilesResponse!
+    @hasRole(role: "admin")
+  downloadFile(fileID: ID!): DownloadFileResponse! @hasRole(role: "admin")
+  getUserByID(userID: ID!): User! @hasRole(role: "admin")
+}
+`, BuiltIn: false},
 	{Name: "../schema/directives.graphqls", Input: `directive @auth on FIELD_DEFINITION
 
 directive @hasRole(role: Role!) on FIELD_DEFINITION

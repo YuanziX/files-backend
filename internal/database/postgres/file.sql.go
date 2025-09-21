@@ -72,7 +72,7 @@ func (q *Queries) CheckFileOwnership(ctx context.Context, arg CheckFileOwnership
 const createFileReference = `-- name: CreateFileReference :one
 INSERT INTO files (owner_id, physical_file_id, folder_id, filename)
 VALUES ($1, $2, $3, $4)
-RETURNING id, owner_id, physical_file_id, folder_id, filename, upload_date
+RETURNING id, owner_id, physical_file_id, folder_id, filename, upload_date, download_count
 `
 
 type CreateFileReferenceParams struct {
@@ -97,6 +97,7 @@ func (q *Queries) CreateFileReference(ctx context.Context, arg CreateFileReferen
 		&i.FolderID,
 		&i.Filename,
 		&i.UploadDate,
+		&i.DownloadCount,
 	)
 	return i, err
 }
@@ -185,7 +186,7 @@ func (q *Queries) GetFileById(ctx context.Context, id pgtype.UUID) (GetFileByIdR
 }
 
 const getFileByIdAndOwner = `-- name: GetFileByIdAndOwner :one
-SELECT id, owner_id, physical_file_id, folder_id, filename, upload_date FROM files WHERE id = $1
+SELECT id, owner_id, physical_file_id, folder_id, filename, upload_date, download_count FROM files WHERE id = $1
 AND owner_id = $2
 `
 
@@ -204,6 +205,7 @@ func (q *Queries) GetFileByIdAndOwner(ctx context.Context, arg GetFileByIdAndOwn
 		&i.FolderID,
 		&i.Filename,
 		&i.UploadDate,
+		&i.DownloadCount,
 	)
 	return i, err
 }

@@ -1,0 +1,34 @@
+type AdminFile {
+  id: ID!
+  ownerID: ID!
+  filename: String!
+  mimeType: String!
+  size: Int!
+  uploadDate: Time!
+  downloadCount: Int!
+}
+
+type Pagination {
+  count: Int!
+  totalCount: Int!
+  pageNo: Int!
+  totalPages: Int!
+  limit: Int!
+}
+
+type GetFilesResponse {
+  files: [AdminFile!]!
+  pagination: Pagination!
+}
+
+type DownloadFileResponse {
+  url: String!
+  filename: String!
+}
+
+extend type Query {
+  getFiles(folderID: ID!, limit: Int!, pageNo: Int!): GetFilesResponse!
+    @hasRole(role: "admin")
+  downloadFile(fileID: ID!): DownloadFileResponse! @hasRole(role: "admin")
+  getUserByID(userID: ID!): User! @hasRole(role: "admin")
+}

@@ -16,6 +16,7 @@ type Querier interface {
 	CheckFileOwnership(ctx context.Context, arg CheckFileOwnershipParams) (bool, error)
 	CheckFolderOwnership(ctx context.Context, arg CheckFolderOwnershipParams) (bool, error)
 	CheckUserOwnsShare(ctx context.Context, arg CheckUserOwnsShareParams) (bool, error)
+	CountAllFilesForAdmin(ctx context.Context) (int64, error)
 	CreateFileReference(ctx context.Context, arg CreateFileReferenceParams) (File, error)
 	CreateFolder(ctx context.Context, arg CreateFolderParams) (Folder, error)
 	CreatePhysicalFile(ctx context.Context, arg CreatePhysicalFileParams) (PhysicalFile, error)
@@ -26,6 +27,7 @@ type Querier interface {
 	DeleteFilesInFolder(ctx context.Context, id pgtype.UUID) error
 	DeleteFolder(ctx context.Context, arg DeleteFolderParams) error
 	DeleteFoldersRecursively(ctx context.Context, id pgtype.UUID) error
+	GetAllFilesForAdmin(ctx context.Context, arg GetAllFilesForAdminParams) ([]GetAllFilesForAdminRow, error)
 	GetFileById(ctx context.Context, id pgtype.UUID) (GetFileByIdRow, error)
 	GetFileByIdAndOwner(ctx context.Context, arg GetFileByIdAndOwnerParams) (File, error)
 	GetFileForDeletion(ctx context.Context, id pgtype.UUID) (GetFileForDeletionRow, error)

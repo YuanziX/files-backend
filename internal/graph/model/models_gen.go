@@ -12,6 +12,16 @@ import (
 	"github.com/YuanziX/files-backend/internal/database/postgres"
 )
 
+type AdminFile struct {
+	ID            string    `json:"id"`
+	OwnerID       string    `json:"ownerID"`
+	Filename      string    `json:"filename"`
+	MimeType      string    `json:"mimeType"`
+	Size          int32     `json:"size"`
+	UploadDate    time.Time `json:"uploadDate"`
+	DownloadCount int32     `json:"downloadCount"`
+}
+
 type AuthResponse struct {
 	User  *postgres.User `json:"user"`
 	Token string         `json:"token"`
@@ -28,6 +38,11 @@ type ConfirmUploadInput struct {
 type ConfirmUploadsResponse struct {
 	Files         []*File         `json:"files"`
 	FailedUploads []*FailedUpload `json:"failedUploads"`
+}
+
+type DownloadFileResponse struct {
+	URL      string `json:"url"`
+	Filename string `json:"filename"`
 }
 
 type DownloadURL struct {
@@ -73,12 +88,25 @@ type FolderSortInput struct {
 	Order SortOrder       `json:"order"`
 }
 
+type GetFilesResponse struct {
+	Files      []*AdminFile `json:"files"`
+	Pagination *Pagination  `json:"pagination"`
+}
+
 type LoginUser struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 type Mutation struct {
+}
+
+type Pagination struct {
+	Count      int32 `json:"count"`
+	TotalCount int32 `json:"totalCount"`
+	PageNo     int32 `json:"pageNo"`
+	TotalPages int32 `json:"totalPages"`
+	Limit      int32 `json:"limit"`
 }
 
 type PreSignedURL struct {

@@ -60,6 +60,7 @@ type File struct {
 	FolderID       pgtype.UUID        `json:"folder_id"`
 	Filename       string             `json:"filename"`
 	UploadDate     pgtype.Timestamptz `json:"upload_date"`
+	DownloadCount  int32              `json:"download_count"`
 }
 
 type Folder struct {
