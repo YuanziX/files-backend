@@ -106,7 +106,12 @@ func (r *queryResolver) DownloadFile(ctx context.Context, fileID string) (*model
 		return nil, fmt.Errorf("access denied: you must be an admin")
 	}
 
-	file, err := r.DB.GetFileForDownload(ctx, utils.GetPgUUID(&fileID))
+	fileUUID := utils.GetPgUUID(&fileID)
+	if !fileUUID.Valid {
+		return nil, fmt.Errorf("invalid fileId")
+	}
+
+	file, err := r.DB.GetFileForDownload(ctx, fileUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file for download: %v", err)
 	}
@@ -122,6 +127,8 @@ func (r *queryResolver) DownloadFile(ctx context.Context, fileID string) (*model
 	if err != nil {
 		return nil, fmt.Errorf("could not generate download URL: %w", err)
 	}
+
+	r.DB.IncrementFileDownloadCount(ctx, fileUUID) // ignore error
 
 	return &model.DownloadFileResponse{
 		URL:      req.URL,

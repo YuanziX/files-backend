@@ -42,6 +42,7 @@ type Querier interface {
 	GetPhysicalFileByHash(ctx context.Context, contentHash string) (PhysicalFile, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
+	IncrementFileDownloadCount(ctx context.Context, id pgtype.UUID) error
 	ListFilesByFolder(ctx context.Context, folderID pgtype.UUID) ([]ListFilesByFolderRow, error)
 	ListFilesByFolderWithSortAndFilter(ctx context.Context, arg ListFilesByFolderWithSortAndFilterParams) ([]ListFilesByFolderWithSortAndFilterRow, error)
 	ListRootFilesByOwner(ctx context.Context, ownerID pgtype.UUID) ([]ListRootFilesByOwnerRow, error)

@@ -269,6 +269,15 @@ func (q *Queries) GetPhysicalFileByHash(ctx context.Context, contentHash string)
 	return i, err
 }
 
+const incrementFileDownloadCount = `-- name: IncrementFileDownloadCount :exec
+UPDATE files SET download_count = download_count + 1 WHERE id = $1
+`
+
+func (q *Queries) IncrementFileDownloadCount(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, incrementFileDownloadCount, id)
+	return err
+}
+
 const listFilesByFolder = `-- name: ListFilesByFolder :many
 SELECT
     f.id, f.filename, f.upload_date,

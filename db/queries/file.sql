@@ -91,3 +91,6 @@ SELECT EXISTS (
 SELECT * FROM files WHERE id = $1
 AND owner_id = $2;
 
+
+-- name: IncrementFileDownloadCount :exec
+UPDATE files SET download_count = download_count + 1 WHERE id = $1;

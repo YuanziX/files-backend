@@ -58,12 +58,12 @@ func (r *mutationResolver) GetDownloadURL(ctx context.Context, fileID string, pu
 		return nil, fmt.Errorf("access denied")
 	}
 
-	fileUUID, err := uuid.Parse(fileID)
-	if err != nil {
+	fileUUID := utils.GetPgUUID(&fileID)
+	if !fileUUID.Valid {
 		return nil, fmt.Errorf("invalid fileId")
 	}
 
-	fileToDownload, err := r.DB.GetFileForDownload(ctx, pgtype.UUID{Bytes: fileUUID, Valid: true})
+	fileToDownload, err := r.DB.GetFileForDownload(ctx, fileUUID)
 	if err != nil {
 		return nil, fmt.Errorf("file not found")
 	}
@@ -71,7 +71,7 @@ func (r *mutationResolver) GetDownloadURL(ctx context.Context, fileID string, pu
 	token := utils.GetPgString(publicToken)
 
 	canAccessFile, err := r.DB.CanAccessFile(ctx, postgres.CanAccessFileParams{
-		FileID:           pgtype.UUID{Bytes: fileUUID, Valid: true},
+		FileID:           fileUUID,
 		PublicToken:      token,
 		SharedWithUserID: userID,
 	})
@@ -96,6 +96,8 @@ func (r *mutationResolver) GetDownloadURL(ctx context.Context, fileID string, pu
 	if err != nil {
 		return nil, fmt.Errorf("could not generate download URL: %w", err)
 	}
+
+	r.DB.IncrementFileDownloadCount(ctx, fileUUID) // ignore error
 
 	return &model.DownloadURL{
 		DownloadURL: req.URL,
