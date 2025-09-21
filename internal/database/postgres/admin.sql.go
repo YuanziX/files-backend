@@ -22,6 +22,39 @@ func (q *Queries) CountAllFilesForAdmin(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const createAdmin = `-- name: CreateAdmin :one
+INSERT INTO users (name, email, password_hash, role)
+VALUES ($1, $2, $3, 'admin')
+RETURNING id, name, email, role, created_at
+`
+
+type CreateAdminParams struct {
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"password_hash"`
+}
+
+type CreateAdminRow struct {
+	ID        pgtype.UUID        `json:"id"`
+	Name      string             `json:"name"`
+	Email     string             `json:"email"`
+	Role      string             `json:"role"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) CreateAdmin(ctx context.Context, arg CreateAdminParams) (CreateAdminRow, error) {
+	row := q.db.QueryRow(ctx, createAdmin, arg.Name, arg.Email, arg.PasswordHash)
+	var i CreateAdminRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Role,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getAllFilesForAdmin = `-- name: GetAllFilesForAdmin :many
 SELECT
     f.id, f.filename, f.upload_date, f.download_count, f.owner_id,

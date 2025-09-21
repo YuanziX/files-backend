@@ -107,6 +107,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		ConfirmUploads        func(childComplexity int, uploads []*model.ConfirmUploadInput) int
+		CreateAdminUser       func(childComplexity int, email string, password string) int
 		CreateFolder          func(childComplexity int, name string, parentID *string) int
 		DeleteFile            func(childComplexity int, fileID string) int
 		DeleteFolder          func(childComplexity int, folderID string) int
@@ -430,6 +431,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.ConfirmUploads(childComplexity, args["uploads"].([]*model.ConfirmUploadInput)), true
+
+	case "Mutation.createAdminUser":
+		if e.complexity.Mutation.CreateAdminUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createAdminUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateAdminUser(childComplexity, args["email"].(string), args["password"].(string)), true
 
 	case "Mutation.createFolder":
 		if e.complexity.Mutation.CreateFolder == nil {
@@ -1026,6 +1039,10 @@ type GetFilesResponse {
 type DownloadFileResponse {
   url: String!
   filename: String!
+}
+
+extend type Mutation {
+  createAdminUser(email: String!, password: String!): String!
 }
 
 extend type Query {

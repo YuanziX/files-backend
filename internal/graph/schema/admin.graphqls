@@ -26,6 +26,10 @@ type DownloadFileResponse {
   filename: String!
 }
 
+extend type Mutation {
+  createAdminUser(email: String!, password: String!): String!
+}
+
 extend type Query {
   getFiles(folderID: ID!, limit: Int!, pageNo: Int!): GetFilesResponse!
     @hasRole(role: "admin")

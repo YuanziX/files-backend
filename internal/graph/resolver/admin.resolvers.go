@@ -15,7 +15,29 @@ import (
 	"github.com/YuanziX/files-backend/internal/utils"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"golang.org/x/crypto/bcrypt"
 )
+
+// CreateAdminUser is the resolver for the createAdminUser field.
+func (r *mutationResolver) CreateAdminUser(ctx context.Context, email string, password string) (string, error) {
+	// hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	admin, err := r.DB.CreateAdmin(ctx, postgres.CreateAdminParams{
+		Name:         "Test Admin",
+		Email:        email,
+		PasswordHash: string(hashedPassword),
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to create admin user: %w", err)
+	}
+
+	return admin.ID.String(), nil
+}
 
 // GetFiles is the resolver for the getFiles field.
 func (r *queryResolver) GetFiles(ctx context.Context, folderID string, limit int32, pageNo int32) (*model.GetFilesResponse, error) {
@@ -116,7 +138,11 @@ func (r *queryResolver) GetUserByID(ctx context.Context, userID string) (*postgr
 	return &user, nil
 }
 
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

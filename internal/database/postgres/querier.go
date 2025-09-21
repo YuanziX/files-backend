@@ -17,6 +17,7 @@ type Querier interface {
 	CheckFolderOwnership(ctx context.Context, arg CheckFolderOwnershipParams) (bool, error)
 	CheckUserOwnsShare(ctx context.Context, arg CheckUserOwnsShareParams) (bool, error)
 	CountAllFilesForAdmin(ctx context.Context) (int64, error)
+	CreateAdmin(ctx context.Context, arg CreateAdminParams) (CreateAdminRow, error)
 	CreateFileReference(ctx context.Context, arg CreateFileReferenceParams) (File, error)
 	CreateFolder(ctx context.Context, arg CreateFolderParams) (Folder, error)
 	CreatePhysicalFile(ctx context.Context, arg CreatePhysicalFileParams) (PhysicalFile, error)

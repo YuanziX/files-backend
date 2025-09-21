@@ -745,8 +745,4 @@ func (r *queryResolver) GetFolderDetails(ctx context.Context, folderID string, p
 // Folder returns generated.FolderResolver implementation.
 func (r *Resolver) Folder() generated.FolderResolver { return &folderResolver{r} }
 
-// Mutation returns generated.MutationResolver implementation.
-func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
-
 type folderResolver struct{ *Resolver }
-type mutationResolver struct{ *Resolver }

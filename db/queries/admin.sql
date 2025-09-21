@@ -9,3 +9,8 @@ LIMIT $1 OFFSET $2;
 
 -- name: CountAllFilesForAdmin :one
 SELECT COUNT(*) FROM files;
+
+-- name: CreateAdmin :one
+INSERT INTO users (name, email, password_hash, role)
+VALUES ($1, $2, $3, 'admin')
+RETURNING id, name, email, role, created_at;
