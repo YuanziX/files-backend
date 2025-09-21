@@ -54,7 +54,7 @@ func (r *folderResolver) ChildrenFiles(ctx context.Context, obj *postgres.Folder
 // GetDownloadURL is the resolver for the getDownloadURL field.
 func (r *mutationResolver) GetDownloadURL(ctx context.Context, fileID string, publicToken *string) (*model.DownloadURL, error) {
 	userID := utils.GetUserID(ctx)
-	if !userID.Valid {
+	if !userID.Valid && publicToken == nil {
 		return nil, fmt.Errorf("access denied")
 	}
 
@@ -671,6 +671,42 @@ func (r *queryResolver) GetFoldersInFolder(ctx context.Context, folderID *string
 	}
 
 	return folders, nil
+}
+
+// SearchFiles is the resolver for the searchFiles field.
+func (r *queryResolver) SearchFiles(ctx context.Context, query string, search string) ([]*model.File, error) {
+	userID := utils.GetUserID(ctx)
+	if !userID.Valid {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	if len(strings.TrimSpace(search)) < 3 {
+		return nil, fmt.Errorf("search term must be at least 3 characters long")
+	}
+
+	var files []*model.File
+
+	searchResults, err := r.DB.SearchAllFilesByOwner(ctx, postgres.SearchAllFilesByOwnerParams{
+		OwnerID: userID,
+		Column2: utils.GetPgString(&query),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("search query failed: %w", err)
+	}
+
+	for _, f := range searchResults {
+		if strings.Contains(strings.ToLower(f.Filename), strings.ToLower(search)) {
+			files = append(files, &model.File{
+				ID:         f.ID.String(),
+				Filename:   f.Filename,
+				UploadDate: f.UploadDate.Time,
+				Size:       int32(f.SizeBytes),
+				MimeType:   f.MimeType,
+			})
+		}
+	}
+
+	return files, nil
 }
 
 // GetFolderDetails is the resolver for the getFolderDetails field.

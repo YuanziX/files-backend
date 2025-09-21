@@ -60,3 +60,21 @@ ORDER BY
     CASE WHEN sqlc.narg('sort_field')::text = 'MIME_TYPE' AND sqlc.narg('sort_order')::text = 'ASC' THEN pf.mime_type END ASC,
     CASE WHEN sqlc.narg('sort_field')::text = 'MIME_TYPE' AND sqlc.narg('sort_order')::text = 'DESC' THEN pf.mime_type END DESC,
     f.filename ASC;
+
+-- name: SearchAllFilesByOwner :many
+SELECT 
+    f.id,
+    f.filename,
+    f.upload_date,
+    pf.size_bytes,
+    pf.mime_type,
+    f.owner_id,
+    f.physical_file_id,
+    f.folder_id
+FROM files f
+JOIN physical_files pf ON f.physical_file_id = pf.id
+WHERE 
+    f.owner_id = $1
+    AND (f.filename ILIKE '%' || $2 || '%'
+         OR pf.mime_type ILIKE '%' || $2 || '%')
+ORDER BY f.upload_date DESC, f.filename ASC;

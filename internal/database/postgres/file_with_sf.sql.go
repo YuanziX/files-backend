@@ -199,3 +199,67 @@ func (q *Queries) ListRootFilesByOwnerWithSortAndFilter(ctx context.Context, arg
 	}
 	return items, nil
 }
+
+const searchAllFilesByOwner = `-- name: SearchAllFilesByOwner :many
+SELECT 
+    f.id,
+    f.filename,
+    f.upload_date,
+    pf.size_bytes,
+    pf.mime_type,
+    f.owner_id,
+    f.physical_file_id,
+    f.folder_id
+FROM files f
+JOIN physical_files pf ON f.physical_file_id = pf.id
+WHERE 
+    f.owner_id = $1
+    AND (f.filename ILIKE '%' || $2 || '%'
+         OR pf.mime_type ILIKE '%' || $2 || '%')
+ORDER BY f.upload_date DESC, f.filename ASC
+`
+
+type SearchAllFilesByOwnerParams struct {
+	OwnerID pgtype.UUID `json:"owner_id"`
+	Column2 pgtype.Text `json:"column_2"`
+}
+
+type SearchAllFilesByOwnerRow struct {
+	ID             pgtype.UUID        `json:"id"`
+	Filename       string             `json:"filename"`
+	UploadDate     pgtype.Timestamptz `json:"upload_date"`
+	SizeBytes      int64              `json:"size_bytes"`
+	MimeType       string             `json:"mime_type"`
+	OwnerID        pgtype.UUID        `json:"owner_id"`
+	PhysicalFileID pgtype.UUID        `json:"physical_file_id"`
+	FolderID       pgtype.UUID        `json:"folder_id"`
+}
+
+func (q *Queries) SearchAllFilesByOwner(ctx context.Context, arg SearchAllFilesByOwnerParams) ([]SearchAllFilesByOwnerRow, error) {
+	rows, err := q.db.Query(ctx, searchAllFilesByOwner, arg.OwnerID, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchAllFilesByOwnerRow
+	for rows.Next() {
+		var i SearchAllFilesByOwnerRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Filename,
+			&i.UploadDate,
+			&i.SizeBytes,
+			&i.MimeType,
+			&i.OwnerID,
+			&i.PhysicalFileID,
+			&i.FolderID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

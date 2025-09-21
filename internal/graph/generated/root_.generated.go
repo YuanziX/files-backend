@@ -123,6 +123,7 @@ type ComplexityRoot struct {
 		GetFoldersInFolder func(childComplexity int, folderID *string, publicToken *string, sort *model.FolderSortInput, filter *model.FolderFilterInput) int
 		GetMyShares        func(childComplexity int) int
 		Me                 func(childComplexity int) int
+		SearchFiles        func(childComplexity int, query string, search string) int
 	}
 
 	Share struct {
@@ -611,6 +612,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Me(childComplexity), true
 
+	case "Query.searchFiles":
+		if e.complexity.Query.SearchFiles == nil {
+			break
+		}
+
+		args, err := ec.field_Query_searchFiles_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SearchFiles(childComplexity, args["query"].(string), args["search"].(string)), true
+
 	case "Share.createdAt":
 		if e.complexity.Share.CreatedAt == nil {
 			break
@@ -934,11 +947,12 @@ extend type Query {
     sort: FolderSortInput
     filter: FolderFilterInput
   ): [Folder!]!
+  searchFiles(query: String!, search: String!): [File!]!
   getFolderDetails(folderId: ID!, publicToken: String): Folder
 }
 
 extend type Mutation {
-  getDownloadURL(fileId: ID!, publicToken: String): DownloadURL! @auth
+  getDownloadURL(fileId: ID!, publicToken: String): DownloadURL!
 
   createFolder(name: String!, parentId: ID): Folder! @auth
   deleteFile(fileId: ID!): Boolean! @auth

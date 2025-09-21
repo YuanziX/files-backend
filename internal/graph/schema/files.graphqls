@@ -115,11 +115,12 @@ extend type Query {
     sort: FolderSortInput
     filter: FolderFilterInput
   ): [Folder!]!
+  searchFiles(query: String!, search: String!): [File!]!
   getFolderDetails(folderId: ID!, publicToken: String): Folder
 }
 
 extend type Mutation {
-  getDownloadURL(fileId: ID!, publicToken: String): DownloadURL! @auth
+  getDownloadURL(fileId: ID!, publicToken: String): DownloadURL!
 
   createFolder(name: String!, parentId: ID): Folder! @auth
   deleteFile(fileId: ID!): Boolean! @auth

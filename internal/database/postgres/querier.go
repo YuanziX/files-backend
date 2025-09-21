@@ -49,6 +49,7 @@ type Querier interface {
 	ListSubfoldersByParentWithSortAndFilter(ctx context.Context, arg ListSubfoldersByParentWithSortAndFilterParams) ([]ListSubfoldersByParentWithSortAndFilterRow, error)
 	RevokePublicShare(ctx context.Context, arg RevokePublicShareParams) error
 	RevokeUserShare(ctx context.Context, arg RevokeUserShareParams) error
+	SearchAllFilesByOwner(ctx context.Context, arg SearchAllFilesByOwnerParams) ([]SearchAllFilesByOwnerRow, error)
 	ShareFilePublicly(ctx context.Context, arg ShareFilePubliclyParams) error
 	ShareFileWithUser(ctx context.Context, arg ShareFileWithUserParams) error
 	ShareFolderPublicly(ctx context.Context, arg ShareFolderPubliclyParams) error
