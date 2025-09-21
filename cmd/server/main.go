@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/YuanziX/files-backend/internal/config"
 	"github.com/YuanziX/files-backend/internal/database"
 	"github.com/YuanziX/files-backend/internal/database/postgres"
@@ -9,7 +11,7 @@ import (
 
 func main() {
 	// load conf
-	cfg := config.New()
+	cfg := config.New(10, time.Second)
 
 	// init db
 	dbPool := database.NewConnection(cfg.DBUrl)

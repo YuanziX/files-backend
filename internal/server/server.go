@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/YuanziX/files-backend/internal/config"
@@ -37,6 +38,7 @@ func New(db database.Queries, dbPool *pgxpool.Pool, cfg *config.Config) *Server 
 	}))
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+	router.Use(httprate.LimitByIP(cfg.NumberOfRequests, cfg.RateLimitWindowDuration))
 
 	s3Client, s3PresignClient := storage.NewS3Clients(cfg)
 
