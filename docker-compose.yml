@@ -2,7 +2,7 @@ services:
   app:
     build: .
     container_name: files-backend
-    env_file: .env.docker
+    env_file: .env
     depends_on:
       db:
         condition: service_healthy
@@ -15,15 +15,15 @@ services:
     image: postgres:15
     container_name: files-postgres
     restart: always
-    env_file: .env.docker
+    env_file: .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
-      POSTGRES_DB: ${POSTGRES_DB:-balkan}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-balkan}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -32,10 +32,10 @@ services:
     image: minio/minio:latest
     container_name: files-minio
     command: server /data --console-address ":9001"
-    env_file: .env.docker
+    env_file: .env
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
       - "9000:9000"
       - "9001:9001"
