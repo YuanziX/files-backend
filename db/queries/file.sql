@@ -64,8 +64,8 @@ SELECT * FROM physical_files
 WHERE content_hash = $1 LIMIT 1;
 
 -- name: CreateFileReference :one
-INSERT INTO files (owner_id, physical_file_id, folder_id, filename)
-VALUES ($1, $2, $3, $4)
+INSERT INTO files (owner_id, physical_file_id, folder_id, filename, is_original)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: CreatePhysicalFile :one
@@ -94,3 +94,6 @@ AND owner_id = $2;
 
 -- name: IncrementFileDownloadCount :exec
 UPDATE files SET download_count = download_count + 1 WHERE id = $1;
+
+-- name: MoveFile :exec
+UPDATE files SET folder_id = $1 WHERE id = $2 AND owner_id = $3;

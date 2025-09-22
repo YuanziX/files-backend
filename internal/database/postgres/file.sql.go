@@ -70,9 +70,9 @@ func (q *Queries) CheckFileOwnership(ctx context.Context, arg CheckFileOwnership
 }
 
 const createFileReference = `-- name: CreateFileReference :one
-INSERT INTO files (owner_id, physical_file_id, folder_id, filename)
-VALUES ($1, $2, $3, $4)
-RETURNING id, owner_id, physical_file_id, folder_id, filename, upload_date, download_count
+INSERT INTO files (owner_id, physical_file_id, folder_id, filename, is_original)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, owner_id, physical_file_id, folder_id, filename, upload_date, download_count, is_original
 `
 
 type CreateFileReferenceParams struct {
@@ -80,6 +80,7 @@ type CreateFileReferenceParams struct {
 	PhysicalFileID pgtype.UUID `json:"physical_file_id"`
 	FolderID       pgtype.UUID `json:"folder_id"`
 	Filename       string      `json:"filename"`
+	IsOriginal     bool        `json:"is_original"`
 }
 
 func (q *Queries) CreateFileReference(ctx context.Context, arg CreateFileReferenceParams) (File, error) {
@@ -88,6 +89,7 @@ func (q *Queries) CreateFileReference(ctx context.Context, arg CreateFileReferen
 		arg.PhysicalFileID,
 		arg.FolderID,
 		arg.Filename,
+		arg.IsOriginal,
 	)
 	var i File
 	err := row.Scan(
@@ -98,6 +100,7 @@ func (q *Queries) CreateFileReference(ctx context.Context, arg CreateFileReferen
 		&i.Filename,
 		&i.UploadDate,
 		&i.DownloadCount,
+		&i.IsOriginal,
 	)
 	return i, err
 }
@@ -186,7 +189,7 @@ func (q *Queries) GetFileById(ctx context.Context, id pgtype.UUID) (GetFileByIdR
 }
 
 const getFileByIdAndOwner = `-- name: GetFileByIdAndOwner :one
-SELECT id, owner_id, physical_file_id, folder_id, filename, upload_date, download_count FROM files WHERE id = $1
+SELECT id, owner_id, physical_file_id, folder_id, filename, upload_date, download_count, is_original FROM files WHERE id = $1
 AND owner_id = $2
 `
 
@@ -206,6 +209,7 @@ func (q *Queries) GetFileByIdAndOwner(ctx context.Context, arg GetFileByIdAndOwn
 		&i.Filename,
 		&i.UploadDate,
 		&i.DownloadCount,
+		&i.IsOriginal,
 	)
 	return i, err
 }
@@ -364,4 +368,19 @@ func (q *Queries) ListRootFilesByOwner(ctx context.Context, ownerID pgtype.UUID)
 		return nil, err
 	}
 	return items, nil
+}
+
+const moveFile = `-- name: MoveFile :exec
+UPDATE files SET folder_id = $1 WHERE id = $2 AND owner_id = $3
+`
+
+type MoveFileParams struct {
+	FolderID pgtype.UUID `json:"folder_id"`
+	ID       pgtype.UUID `json:"id"`
+	OwnerID  pgtype.UUID `json:"owner_id"`
+}
+
+func (q *Queries) MoveFile(ctx context.Context, arg MoveFileParams) error {
+	_, err := q.db.Exec(ctx, moveFile, arg.FolderID, arg.ID, arg.OwnerID)
+	return err
 }

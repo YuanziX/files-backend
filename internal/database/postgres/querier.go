@@ -51,6 +51,7 @@ type Querier interface {
 	ListRootFoldersByOwnerWithSortAndFilter(ctx context.Context, arg ListRootFoldersByOwnerWithSortAndFilterParams) ([]ListRootFoldersByOwnerWithSortAndFilterRow, error)
 	ListSubfoldersByParent(ctx context.Context, parentID pgtype.UUID) ([]Folder, error)
 	ListSubfoldersByParentWithSortAndFilter(ctx context.Context, arg ListSubfoldersByParentWithSortAndFilterParams) ([]ListSubfoldersByParentWithSortAndFilterRow, error)
+	MoveFile(ctx context.Context, arg MoveFileParams) error
 	RevokePublicShare(ctx context.Context, arg RevokePublicShareParams) error
 	RevokeUserShare(ctx context.Context, arg RevokeUserShareParams) error
 	SearchAllFilesByOwner(ctx context.Context, arg SearchAllFilesByOwnerParams) ([]SearchAllFilesByOwnerRow, error)

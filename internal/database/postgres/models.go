@@ -61,6 +61,7 @@ type File struct {
 	Filename       string             `json:"filename"`
 	UploadDate     pgtype.Timestamptz `json:"upload_date"`
 	DownloadCount  int32              `json:"download_count"`
+	IsOriginal     bool               `json:"is_original"`
 }
 
 type Folder struct {

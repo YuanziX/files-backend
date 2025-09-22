@@ -451,6 +451,7 @@ func (r *mutationResolver) ConfirmUploads(ctx context.Context, uploads []*model.
 			PhysicalFileID: physicalFile.ID,
 			FolderID:       pgFolderID,
 			Filename:       upload.Filename,
+			IsOriginal:     true,
 		}
 		newFile, err := qtx.CreateFileReference(ctx, fileRefParams)
 		if err != nil {
