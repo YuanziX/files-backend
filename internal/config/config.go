@@ -15,6 +15,7 @@ type Config struct {
 	NumberOfRequests        int
 	RateLimitWindowDuration time.Duration
 
+	PublicS3Endpoint  string
 	S3Endpoint        string
 	S3Region          string
 	S3AccessKeyID     string
@@ -34,6 +35,7 @@ func New(NumberOfRequests int, rateLimitWindowDuration time.Duration) *Config {
 		NumberOfRequests:        NumberOfRequests,
 		RateLimitWindowDuration: rateLimitWindowDuration,
 		S3Endpoint:              getEnv("S3_ENDPOINT", "http://localhost:9000", false),
+		PublicS3Endpoint:        getEnv("PUBLIC_S3_ENDPOINT", "http://localhost:9000", false),
 		S3Region:                getEnv("S3_REGION", "us-east-1", false),
 		S3AccessKeyID:           getEnv("S3_ACCESS_KEY_ID", "minioadmin", false),
 		S3SecretAccessKey:       getEnv("S3_SECRET_ACCESS_KEY", "minioadmin", false),
