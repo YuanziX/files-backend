@@ -38,3 +38,16 @@ func GetPgTime(t *time.Time) pgtype.Timestamptz {
 	}
 	return pgtype.Timestamptz{Time: *t, Valid: true}
 }
+
+func GetIntFromPgNumeric(i interface{}) int32 {
+	switch v := i.(type) {
+	case pgtype.Numeric:
+		if v.Valid {
+			n, _ := v.Int64Value()
+			return int32(n.Int64)
+		}
+		return 0
+	default:
+		return 0
+	}
+}

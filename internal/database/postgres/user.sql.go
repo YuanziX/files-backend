@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countUsers = `-- name: CountUsers :one
+SELECT COUNT(*) FROM users
+`
+
+func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countUsers)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (name, email, password_hash)
 VALUES ($1, $2, $3)
@@ -76,4 +87,64 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getUserUsageStats = `-- name: GetUserUsageStats :one
+SELECT 
+    COALESCE(SUM(pf.size_bytes), 0) AS total_storage_used,
+    COALESCE(SUM(CASE WHEN f.is_original = true THEN pf.size_bytes ELSE 0 END), 0) AS actual_storage_used
+FROM files f
+JOIN physical_files pf ON f.physical_file_id = pf.id
+WHERE f.owner_id = $1
+`
+
+type GetUserUsageStatsRow struct {
+	TotalStorageUsed  interface{} `json:"total_storage_used"`
+	ActualStorageUsed interface{} `json:"actual_storage_used"`
+}
+
+func (q *Queries) GetUserUsageStats(ctx context.Context, ownerID pgtype.UUID) (GetUserUsageStatsRow, error) {
+	row := q.db.QueryRow(ctx, getUserUsageStats, ownerID)
+	var i GetUserUsageStatsRow
+	err := row.Scan(&i.TotalStorageUsed, &i.ActualStorageUsed)
+	return i, err
+}
+
+const getUsers = `-- name: GetUsers :many
+SELECT id, name, email, password_hash, role, storage_quota_bytes, created_at FROM users
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type GetUsersParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error) {
+	rows, err := q.db.Query(ctx, getUsers, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.PasswordHash,
+			&i.Role,
+			&i.StorageQuotaBytes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

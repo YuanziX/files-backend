@@ -17,6 +17,7 @@ type Querier interface {
 	CheckFolderOwnership(ctx context.Context, arg CheckFolderOwnershipParams) (bool, error)
 	CheckUserOwnsShare(ctx context.Context, arg CheckUserOwnsShareParams) (bool, error)
 	CountAllFilesForAdmin(ctx context.Context) (int64, error)
+	CountUsers(ctx context.Context) (int64, error)
 	CreateAdmin(ctx context.Context, arg CreateAdminParams) (CreateAdminRow, error)
 	CreateFileReference(ctx context.Context, arg CreateFileReferenceParams) (File, error)
 	CreateFolder(ctx context.Context, arg CreateFolderParams) (Folder, error)
@@ -42,6 +43,8 @@ type Querier interface {
 	GetPhysicalFileByHash(ctx context.Context, contentHash string) (PhysicalFile, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
+	GetUserUsageStats(ctx context.Context, ownerID pgtype.UUID) (GetUserUsageStatsRow, error)
+	GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error)
 	IncrementFileDownloadCount(ctx context.Context, id pgtype.UUID) error
 	ListFilesByFolder(ctx context.Context, folderID pgtype.UUID) ([]ListFilesByFolderRow, error)
 	ListFilesByFolderWithSortAndFilter(ctx context.Context, arg ListFilesByFolderWithSortAndFilterParams) ([]ListFilesByFolderWithSortAndFilterRow, error)

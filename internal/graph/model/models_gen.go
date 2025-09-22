@@ -93,6 +93,11 @@ type GetFilesResponse struct {
 	Pagination *Pagination  `json:"pagination"`
 }
 
+type GetUsersResponse struct {
+	Users      []*postgres.User `json:"users"`
+	Pagination *Pagination      `json:"pagination"`
+}
+
 type LoginUser struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -133,6 +138,11 @@ type RegisterUser struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type UsageStat struct {
+	TotalStorageUsed  int32 `json:"totalStorageUsed"`
+	ActualStorageUsed int32 `json:"actualStorageUsed"`
 }
 
 type FileSortField string

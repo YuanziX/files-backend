@@ -105,6 +105,11 @@ type ComplexityRoot struct {
 		Pagination func(childComplexity int) int
 	}
 
+	GetUsersResponse struct {
+		Pagination func(childComplexity int) int
+		Users      func(childComplexity int) int
+	}
+
 	Mutation struct {
 		ConfirmUploads        func(childComplexity int, uploads []*model.ConfirmUploadInput) int
 		CreateAdminUser       func(childComplexity int, email string, password string) int
@@ -144,18 +149,20 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		DownloadFile       func(childComplexity int, fileID string) int
-		GetFile            func(childComplexity int, fileID string, publicToken *string) int
-		GetFileShares      func(childComplexity int, fileID string) int
-		GetFiles           func(childComplexity int, limit *int32, pageNo *int32) int
-		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string, sort *model.FileSortInput, filter *model.FileFilterInput) int
-		GetFolderDetails   func(childComplexity int, folderID *string, publicToken *string) int
-		GetFolderShares    func(childComplexity int, folderID string) int
-		GetFoldersInFolder func(childComplexity int, folderID *string, publicToken *string, sort *model.FolderSortInput, filter *model.FolderFilterInput) int
-		GetMyShares        func(childComplexity int) int
-		GetUserByID        func(childComplexity int, userID string) int
-		Me                 func(childComplexity int) int
-		SearchFiles        func(childComplexity int, query string, search string) int
+		DownloadFile        func(childComplexity int, fileID string) int
+		GetFile             func(childComplexity int, fileID string, publicToken *string) int
+		GetFileShares       func(childComplexity int, fileID string) int
+		GetFiles            func(childComplexity int, limit *int32, pageNo *int32) int
+		GetFilesInFolder    func(childComplexity int, folderID *string, publicToken *string, sort *model.FileSortInput, filter *model.FileFilterInput) int
+		GetFolderDetails    func(childComplexity int, folderID *string, publicToken *string) int
+		GetFolderShares     func(childComplexity int, folderID string) int
+		GetFoldersInFolder  func(childComplexity int, folderID *string, publicToken *string, sort *model.FolderSortInput, filter *model.FolderFilterInput) int
+		GetMyShares         func(childComplexity int) int
+		GetUsageStatsByUser func(childComplexity int, userID string) int
+		GetUserByID         func(childComplexity int, userID string) int
+		GetUsers            func(childComplexity int, limit *int32, pageNo *int32) int
+		Me                  func(childComplexity int) int
+		SearchFiles         func(childComplexity int, query string, search string) int
 	}
 
 	Share struct {
@@ -166,6 +173,11 @@ type ComplexityRoot struct {
 		PublicToken   func(childComplexity int) int
 		ShareType     func(childComplexity int) int
 		SharedWith    func(childComplexity int) int
+	}
+
+	UsageStat struct {
+		ActualStorageUsed func(childComplexity int) int
+		TotalStorageUsed  func(childComplexity int) int
 	}
 
 	User struct {
@@ -419,6 +431,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.GetFilesResponse.Pagination(childComplexity), true
+
+	case "GetUsersResponse.pagination":
+		if e.complexity.GetUsersResponse.Pagination == nil {
+			break
+		}
+
+		return e.complexity.GetUsersResponse.Pagination(childComplexity), true
+
+	case "GetUsersResponse.users":
+		if e.complexity.GetUsersResponse.Users == nil {
+			break
+		}
+
+		return e.complexity.GetUsersResponse.Users(childComplexity), true
 
 	case "Mutation.confirmUploads":
 		if e.complexity.Mutation.ConfirmUploads == nil {
@@ -785,6 +811,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.GetMyShares(childComplexity), true
 
+	case "Query.getUsageStatsByUser":
+		if e.complexity.Query.GetUsageStatsByUser == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getUsageStatsByUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetUsageStatsByUser(childComplexity, args["userID"].(string)), true
+
 	case "Query.getUserByID":
 		if e.complexity.Query.GetUserByID == nil {
 			break
@@ -796,6 +834,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.GetUserByID(childComplexity, args["userID"].(string)), true
+
+	case "Query.getUsers":
+		if e.complexity.Query.GetUsers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getUsers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetUsers(childComplexity, args["limit"].(*int32), args["pageNo"].(*int32)), true
 
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
@@ -864,6 +914,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Share.SharedWith(childComplexity), true
+
+	case "UsageStat.actualStorageUsed":
+		if e.complexity.UsageStat.ActualStorageUsed == nil {
+			break
+		}
+
+		return e.complexity.UsageStat.ActualStorageUsed(childComplexity), true
+
+	case "UsageStat.totalStorageUsed":
+		if e.complexity.UsageStat.TotalStorageUsed == nil {
+			break
+		}
+
+		return e.complexity.UsageStat.TotalStorageUsed(childComplexity), true
 
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
@@ -1036,9 +1100,19 @@ type GetFilesResponse {
   pagination: Pagination!
 }
 
+type GetUsersResponse {
+  users: [User!]!
+  pagination: Pagination!
+}
+
 type DownloadFileResponse {
   url: String!
   filename: String!
+}
+
+type UsageStat {
+  totalStorageUsed: Int!
+  actualStorageUsed: Int!
 }
 
 extend type Mutation {
@@ -1048,7 +1122,10 @@ extend type Mutation {
 extend type Query {
   getFiles(limit: Int, pageNo: Int): GetFilesResponse! @hasRole(role: "admin")
   downloadFile(fileID: ID!): DownloadFileResponse! @hasRole(role: "admin")
+
+  getUsers(limit: Int, pageNo: Int): GetUsersResponse! @hasRole(role: "admin")
   getUserByID(userID: ID!): User! @hasRole(role: "admin")
+  getUsageStatsByUser(userID: ID!): UsageStat! @hasRole(role: "admin")
 }
 `, BuiltIn: false},
 	{Name: "../schema/directives.graphqls", Input: `directive @auth on FIELD_DEFINITION

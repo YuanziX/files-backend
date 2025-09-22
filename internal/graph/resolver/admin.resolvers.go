@@ -136,6 +136,50 @@ func (r *queryResolver) DownloadFile(ctx context.Context, fileID string) (*model
 	}, nil
 }
 
+// GetUsers is the resolver for the getUsers field.
+func (r *queryResolver) GetUsers(ctx context.Context, limit *int32, pageNo *int32) (*model.GetUsersResponse, error) {
+	adminId := utils.GetUserID(ctx)
+	if !adminId.Valid {
+		return nil, fmt.Errorf("access denied: you must be logged in")
+	}
+
+	useLimit, usePageNo := int32(10), int32(1)
+	if limit != nil && *limit > 0 {
+		useLimit = *limit
+	}
+	if pageNo != nil && *pageNo > 0 {
+		usePageNo = *pageNo
+	}
+
+	users, err := r.DB.GetUsers(ctx, postgres.GetUsersParams{
+		Limit:  useLimit,
+		Offset: (usePageNo - 1) * useLimit,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users: %v", err)
+	}
+
+	totalCount, err := r.DB.CountUsers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count users: %v", err)
+	}
+
+	var userPtrs []*postgres.User
+	for i := range users {
+		userPtrs = append(userPtrs, &users[i])
+	}
+	return &model.GetUsersResponse{
+		Users: userPtrs,
+		Pagination: &model.Pagination{
+			Count:      int32(len(users)),
+			TotalCount: int32(totalCount),
+			PageNo:     usePageNo,
+			TotalPages: (int32(totalCount) + useLimit - 1) / useLimit,
+			Limit:      useLimit,
+		},
+	}, nil
+}
+
 // GetUserByID is the resolver for the getUserByID field.
 func (r *queryResolver) GetUserByID(ctx context.Context, userID string) (*postgres.User, error) {
 	adminId := utils.GetUserID(ctx)
@@ -152,6 +196,19 @@ func (r *queryResolver) GetUserByID(ctx context.Context, userID string) (*postgr
 	}
 
 	return &user, nil
+}
+
+// GetUsageStatsByUser is the resolver for the getUsageStatsByUser field.
+func (r *queryResolver) GetUsageStatsByUser(ctx context.Context, userID string) (*model.UsageStat, error) {
+	usageStats, err := r.DB.GetUserUsageStats(ctx, utils.GetPgUUID(&userID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get usage stats: %v", err)
+	}
+
+	return &model.UsageStat{
+		TotalStorageUsed:  utils.GetIntFromPgNumeric(usageStats.TotalStorageUsed),
+		ActualStorageUsed: utils.GetIntFromPgNumeric(usageStats.ActualStorageUsed),
+	}, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

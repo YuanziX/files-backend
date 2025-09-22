@@ -39,7 +39,9 @@ type MutationResolver interface {
 type QueryResolver interface {
 	GetFiles(ctx context.Context, limit *int32, pageNo *int32) (*model.GetFilesResponse, error)
 	DownloadFile(ctx context.Context, fileID string) (*model.DownloadFileResponse, error)
+	GetUsers(ctx context.Context, limit *int32, pageNo *int32) (*model.GetUsersResponse, error)
 	GetUserByID(ctx context.Context, userID string) (*postgres.User, error)
+	GetUsageStatsByUser(ctx context.Context, userID string) (*model.UsageStat, error)
 	GetFile(ctx context.Context, fileID string, publicToken *string) (*model.File, error)
 	GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string, sort *model.FileSortInput, filter *model.FileFilterInput) ([]*model.File, error)
 	GetFoldersInFolder(ctx context.Context, folderID *string, publicToken *string, sort *model.FolderSortInput, filter *model.FolderFilterInput) ([]*postgres.Folder, error)
@@ -410,6 +412,17 @@ func (ec *executionContext) field_Query_getFoldersInFolder_args(ctx context.Cont
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_getUsageStatsByUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["userID"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_getUserByID_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -418,6 +431,22 @@ func (ec *executionContext) field_Query_getUserByID_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["userID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getUsers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint32)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "pageNo", ec.unmarshalOInt2ᚖint32)
+	if err != nil {
+		return nil, err
+	}
+	args["pageNo"] = arg1
 	return args, nil
 }
 
@@ -770,6 +799,88 @@ func (ec *executionContext) _GetFilesResponse_pagination(ctx context.Context, fi
 func (ec *executionContext) fieldContext_GetFilesResponse_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "GetFilesResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "count":
+				return ec.fieldContext_Pagination_count(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_Pagination_totalCount(ctx, field)
+			case "pageNo":
+				return ec.fieldContext_Pagination_pageNo(ctx, field)
+			case "totalPages":
+				return ec.fieldContext_Pagination_totalPages(ctx, field)
+			case "limit":
+				return ec.fieldContext_Pagination_limit(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Pagination", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GetUsersResponse_users(ctx context.Context, field graphql.CollectedField, obj *model.GetUsersResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GetUsersResponse_users,
+		func(ctx context.Context) (any, error) {
+			return obj.Users, nil
+		},
+		nil,
+		ec.marshalNUser2ᚕᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐUserᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GetUsersResponse_users(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GetUsersResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_User_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GetUsersResponse_pagination(ctx context.Context, field graphql.CollectedField, obj *model.GetUsersResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GetUsersResponse_pagination,
+		func(ctx context.Context) (any, error) {
+			return obj.Pagination, nil
+		},
+		nil,
+		ec.marshalNPagination2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐPagination,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GetUsersResponse_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GetUsersResponse",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -1927,6 +2038,71 @@ func (ec *executionContext) fieldContext_Query_downloadFile(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_getUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_getUsers,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().GetUsers(ctx, fc.Args["limit"].(*int32), fc.Args["pageNo"].(*int32))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				role, err := ec.unmarshalNRole2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐRole(ctx, "admin")
+				if err != nil {
+					var zeroVal *model.GetUsersResponse
+					return zeroVal, err
+				}
+				if ec.directives.HasRole == nil {
+					var zeroVal *model.GetUsersResponse
+					return zeroVal, errors.New("directive hasRole is not implemented")
+				}
+				return ec.directives.HasRole(ctx, nil, directive0, role)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNGetUsersResponse2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐGetUsersResponse,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_getUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "users":
+				return ec.fieldContext_GetUsersResponse_users(ctx, field)
+			case "pagination":
+				return ec.fieldContext_GetUsersResponse_pagination(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GetUsersResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getUsers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getUserByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1992,6 +2168,71 @@ func (ec *executionContext) fieldContext_Query_getUserByID(ctx context.Context, 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_getUserByID_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getUsageStatsByUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_getUsageStatsByUser,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().GetUsageStatsByUser(ctx, fc.Args["userID"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				role, err := ec.unmarshalNRole2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐRole(ctx, "admin")
+				if err != nil {
+					var zeroVal *model.UsageStat
+					return zeroVal, err
+				}
+				if ec.directives.HasRole == nil {
+					var zeroVal *model.UsageStat
+					return zeroVal, errors.New("directive hasRole is not implemented")
+				}
+				return ec.directives.HasRole(ctx, nil, directive0, role)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNUsageStat2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐUsageStat,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_getUsageStatsByUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "totalStorageUsed":
+				return ec.fieldContext_UsageStat_totalStorageUsed(ctx, field)
+			case "actualStorageUsed":
+				return ec.fieldContext_UsageStat_actualStorageUsed(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UsageStat", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getUsageStatsByUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -2635,6 +2876,64 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _UsageStat_totalStorageUsed(ctx context.Context, field graphql.CollectedField, obj *model.UsageStat) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UsageStat_totalStorageUsed,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalStorageUsed, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UsageStat_totalStorageUsed(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UsageStat",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UsageStat_actualStorageUsed(ctx context.Context, field graphql.CollectedField, obj *model.UsageStat) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UsageStat_actualStorageUsed,
+		func(ctx context.Context) (any, error) {
+			return obj.ActualStorageUsed, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UsageStat_actualStorageUsed(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UsageStat",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 // endregion **************************** field.gotpl *****************************
 
 // region    **************************** input.gotpl *****************************
@@ -2778,6 +3077,50 @@ func (ec *executionContext) _GetFilesResponse(ctx context.Context, sel ast.Selec
 			}
 		case "pagination":
 			out.Values[i] = ec._GetFilesResponse_pagination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var getUsersResponseImplementors = []string{"GetUsersResponse"}
+
+func (ec *executionContext) _GetUsersResponse(ctx context.Context, sel ast.SelectionSet, obj *model.GetUsersResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, getUsersResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GetUsersResponse")
+		case "users":
+			out.Values[i] = ec._GetUsersResponse_users(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pagination":
+			out.Values[i] = ec._GetUsersResponse_pagination(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3080,6 +3423,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getUsers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "getUserByID":
 			field := field
 
@@ -3090,6 +3455,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getUserByID(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getUsageStatsByUser":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getUsageStatsByUser(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -3325,6 +3712,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
+var usageStatImplementors = []string{"UsageStat"}
+
+func (ec *executionContext) _UsageStat(ctx context.Context, sel ast.SelectionSet, obj *model.UsageStat) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, usageStatImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UsageStat")
+		case "totalStorageUsed":
+			out.Values[i] = ec._UsageStat_totalStorageUsed(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "actualStorageUsed":
+			out.Values[i] = ec._UsageStat_actualStorageUsed(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
@@ -3411,6 +3842,20 @@ func (ec *executionContext) marshalNGetFilesResponse2ᚖgithubᚗcomᚋYuanziX�
 	return ec._GetFilesResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNGetUsersResponse2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐGetUsersResponse(ctx context.Context, sel ast.SelectionSet, v model.GetUsersResponse) graphql.Marshaler {
+	return ec._GetUsersResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNGetUsersResponse2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐGetUsersResponse(ctx context.Context, sel ast.SelectionSet, v *model.GetUsersResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._GetUsersResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐPagination(ctx context.Context, sel ast.SelectionSet, v *model.Pagination) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -3419,6 +3864,20 @@ func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋYuanziXᚋfiles
 		return graphql.Null
 	}
 	return ec._Pagination(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUsageStat2githubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐUsageStat(ctx context.Context, sel ast.SelectionSet, v model.UsageStat) graphql.Marshaler {
+	return ec._UsageStat(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUsageStat2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋgraphᚋmodelᚐUsageStat(ctx context.Context, sel ast.SelectionSet, v *model.UsageStat) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UsageStat(ctx, sel, v)
 }
 
 // endregion ***************************** type.gotpl *****************************
