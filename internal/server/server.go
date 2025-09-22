@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/YuanziX/files-backend/internal/graph/resolver"
 	custom_middleware "github.com/YuanziX/files-backend/internal/middleware"
 	"github.com/YuanziX/files-backend/internal/storage"
+	"github.com/YuanziX/files-backend/internal/utils"
 )
 
 type Server struct {
@@ -67,6 +69,8 @@ func New(db database.Queries, dbPool *pgxpool.Pool, cfg *config.Config) *Server 
 		w.Write([]byte("OK"))
 	})
 	router.With(custom_middleware.UserLoaderMiddleware(cfg.JwtSecret)).Handle("/query", srv)
+
+	utils.StartCleanupWorker(context.Background(), utils.NewWorker(&db, s3Client, cfg.S3BucketName))
 
 	return &Server{
 		Router: router,

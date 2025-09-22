@@ -29,6 +29,7 @@ type Querier interface {
 	DeleteFilesInFolder(ctx context.Context, id pgtype.UUID) error
 	DeleteFolder(ctx context.Context, arg DeleteFolderParams) error
 	DeleteFoldersRecursively(ctx context.Context, id pgtype.UUID) error
+	DeletePhysicalFileById(ctx context.Context, id pgtype.UUID) error
 	GetAllFilesForAdmin(ctx context.Context, arg GetAllFilesForAdminParams) ([]GetAllFilesForAdminRow, error)
 	GetFileById(ctx context.Context, id pgtype.UUID) (GetFileByIdRow, error)
 	GetFileByIdAndOwner(ctx context.Context, arg GetFileByIdAndOwnerParams) (File, error)
@@ -41,6 +42,7 @@ type Querier interface {
 	GetFolderShares(ctx context.Context, arg GetFolderSharesParams) ([]Share, error)
 	GetMyShares(ctx context.Context, ownerID pgtype.UUID) ([]Share, error)
 	GetPhysicalFileByHash(ctx context.Context, contentHash string) (PhysicalFile, error)
+	GetPhysicalFilesForCleanup(ctx context.Context) ([]PhysicalFile, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserUsageStats(ctx context.Context, ownerID pgtype.UUID) (GetUserUsageStatsRow, error)

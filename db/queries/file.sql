@@ -97,3 +97,9 @@ UPDATE files SET download_count = download_count + 1 WHERE id = $1;
 
 -- name: MoveFile :exec
 UPDATE files SET folder_id = $1 WHERE id = $2 AND owner_id = $3;
+
+-- name: GetPhysicalFilesForCleanup :many
+SELECT * FROM physical_files WHERE reference_count <= 0;
+
+-- name: DeletePhysicalFileById :exec
+DELETE FROM physical_files WHERE id = $1;

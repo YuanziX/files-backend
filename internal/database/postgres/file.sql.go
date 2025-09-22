@@ -156,6 +156,15 @@ func (q *Queries) DeleteFileReference(ctx context.Context, id pgtype.UUID) error
 	return err
 }
 
+const deletePhysicalFileById = `-- name: DeletePhysicalFileById :exec
+DELETE FROM physical_files WHERE id = $1
+`
+
+func (q *Queries) DeletePhysicalFileById(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deletePhysicalFileById, id)
+	return err
+}
+
 const getFileById = `-- name: GetFileById :one
 SELECT
     f.owner_id, f.id, f.filename, f.upload_date,
@@ -271,6 +280,38 @@ func (q *Queries) GetPhysicalFileByHash(ctx context.Context, contentHash string)
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getPhysicalFilesForCleanup = `-- name: GetPhysicalFilesForCleanup :many
+SELECT id, content_hash, mime_type, size_bytes, storage_path, reference_count, created_at FROM physical_files WHERE reference_count <= 0
+`
+
+func (q *Queries) GetPhysicalFilesForCleanup(ctx context.Context) ([]PhysicalFile, error) {
+	rows, err := q.db.Query(ctx, getPhysicalFilesForCleanup)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PhysicalFile
+	for rows.Next() {
+		var i PhysicalFile
+		if err := rows.Scan(
+			&i.ID,
+			&i.ContentHash,
+			&i.MimeType,
+			&i.SizeBytes,
+			&i.StoragePath,
+			&i.ReferenceCount,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const incrementFileDownloadCount = `-- name: IncrementFileDownloadCount :exec
