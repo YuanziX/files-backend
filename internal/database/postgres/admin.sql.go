@@ -61,13 +61,15 @@ SELECT
     pf.mime_type, pf.size_bytes
 FROM files f
 JOIN physical_files pf ON f.physical_file_id = pf.id
+WHERE f.filename ILIKE '%' || $3 || '%'
 ORDER BY f.upload_date DESC
 LIMIT $1 OFFSET $2
 `
 
 type GetAllFilesForAdminParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit   int32       `json:"limit"`
+	Offset  int32       `json:"offset"`
+	Column3 pgtype.Text `json:"column_3"`
 }
 
 type GetAllFilesForAdminRow struct {
@@ -81,7 +83,7 @@ type GetAllFilesForAdminRow struct {
 }
 
 func (q *Queries) GetAllFilesForAdmin(ctx context.Context, arg GetAllFilesForAdminParams) ([]GetAllFilesForAdminRow, error) {
-	rows, err := q.db.Query(ctx, getAllFilesForAdmin, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllFilesForAdmin, arg.Limit, arg.Offset, arg.Column3)
 	if err != nil {
 		return nil, err
 	}

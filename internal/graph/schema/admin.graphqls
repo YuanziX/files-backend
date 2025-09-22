@@ -41,7 +41,8 @@ extend type Mutation {
 }
 
 extend type Query {
-  getFiles(limit: Int, pageNo: Int): GetFilesResponse! @hasRole(role: "admin")
+  getFiles(search: String, limit: Int, pageNo: Int): GetFilesResponse!
+    @hasRole(role: "admin")
   downloadFile(fileID: ID!): DownloadFileResponse! @hasRole(role: "admin")
 
   getUsers(limit: Int, pageNo: Int): GetUsersResponse! @hasRole(role: "admin")

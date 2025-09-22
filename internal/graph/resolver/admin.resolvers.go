@@ -40,7 +40,7 @@ func (r *mutationResolver) CreateAdminUser(ctx context.Context, email string, pa
 }
 
 // GetFiles is the resolver for the getFiles field.
-func (r *queryResolver) GetFiles(ctx context.Context, limit *int32, pageNo *int32) (*model.GetFilesResponse, error) {
+func (r *queryResolver) GetFiles(ctx context.Context, search *string, limit *int32, pageNo *int32) (*model.GetFilesResponse, error) {
 	adminId := utils.GetUserID(ctx)
 	if !adminId.Valid {
 		return nil, fmt.Errorf("access denied: you must be logged in")
@@ -58,9 +58,15 @@ func (r *queryResolver) GetFiles(ctx context.Context, limit *int32, pageNo *int3
 		usePageNo = *pageNo
 	}
 
+	var searchStr string
+	if search == nil {
+		searchStr = ""
+	}
+
 	files, err := r.DB.GetAllFilesForAdmin(ctx, postgres.GetAllFilesForAdminParams{
-		Limit:  useLimit,
-		Offset: (usePageNo - 1) * useLimit,
+		Limit:   useLimit,
+		Offset:  (usePageNo - 1) * useLimit,
+		Column3: utils.GetPgString(&searchStr),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get files: %v", err)
