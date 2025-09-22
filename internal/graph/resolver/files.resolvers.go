@@ -155,10 +155,9 @@ func (r *mutationResolver) GetDownloadURL(ctx context.Context, fileID string, pu
 	}
 
 	r.DB.IncrementFileDownloadCount(ctx, fileUUID) // ignore error
-	url := strings.Replace(req.URL, r.Cfg.S3Endpoint, r.Cfg.PublicS3Endpoint, 1)
 
 	return &model.DownloadURL{
-		DownloadURL: url,
+		DownloadURL: req.URL,
 		Filename:    fileToDownload.Filename,
 	}, nil
 }
@@ -350,11 +349,10 @@ func (r *mutationResolver) PreUploadCheck(ctx context.Context, files []*model.Pr
 			objectName := fileInput.Hash
 			expiry := 15 * time.Minute
 
-			presignedURL, err := r.S3PresignClient.PresignPutObject(ctx, &s3.PutObjectInput{
+			req, err := r.S3PresignClient.PresignPutObject(ctx, &s3.PutObjectInput{
 				Bucket: &r.Cfg.S3BucketName,
 				Key:    &objectName,
 			}, s3.WithPresignExpires(expiry))
-			url := strings.Replace(presignedURL.URL, r.Cfg.S3Endpoint, r.Cfg.PublicS3Endpoint, 1)
 
 			if err != nil {
 				return nil, fmt.Errorf("could not generate pre-signed URL for %s: %w", fileInput.Filename, err)
@@ -362,7 +360,7 @@ func (r *mutationResolver) PreUploadCheck(ctx context.Context, files []*model.Pr
 			newFiles = append(newFiles, &model.PreSignedURL{
 				Filename:  fileInput.Filename,
 				Hash:      fileInput.Hash,
-				UploadURL: url,
+				UploadURL: req.URL,
 			})
 		}
 	}

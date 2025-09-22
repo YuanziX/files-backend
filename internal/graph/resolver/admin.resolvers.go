@@ -7,7 +7,6 @@ package resolver
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/YuanziX/files-backend/internal/database/postgres"
@@ -128,12 +127,11 @@ func (r *queryResolver) DownloadFile(ctx context.Context, fileID string) (*model
 	if err != nil {
 		return nil, fmt.Errorf("could not generate download URL: %w", err)
 	}
-	url := strings.Replace(req.URL, r.Cfg.S3Endpoint, r.Cfg.PublicS3Endpoint, 1)
 
 	r.DB.IncrementFileDownloadCount(ctx, fileUUID) // ignore error
 
 	return &model.DownloadFileResponse{
-		URL:      url,
+		URL:      req.URL,
 		Filename: file.Filename,
 	}, nil
 }
