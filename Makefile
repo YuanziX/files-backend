@@ -8,6 +8,3 @@ run:
 
 setup:
 	go mod tidy
-
-init: setup generate
-	docker start 1c87fe71529a 2879078a0b6d 
