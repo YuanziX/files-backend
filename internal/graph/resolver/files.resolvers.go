@@ -501,33 +501,26 @@ func (r *queryResolver) GetFile(ctx context.Context, fileID string, publicToken 
 		}, nil
 	}
 
-	// Check public access
-	if publicToken != nil {
-		canAccess, err := r.DB.CanAccessFile(ctx, postgres.CanAccessFileParams{
-			FileID:           fileUUID,
-			PublicToken:      utils.GetPgString(publicToken),
-			SharedWithUserID: userID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("error checking file access: %w", err)
-		}
-
-		if canAccess {
-			return &model.File{
-				ID:         requestedFile.ID.String(),
-				Filename:   requestedFile.Filename,
-				UploadDate: requestedFile.UploadDate.Time,
-				Size:       int32(requestedFile.SizeBytes),
-				MimeType:   requestedFile.MimeType,
-			}, nil
-		}
+	canAccess, err := r.DB.CanAccessFile(ctx, postgres.CanAccessFileParams{
+		FileID:           fileUUID,
+		PublicToken:      utils.GetPgString(publicToken),
+		SharedWithUserID: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error checking file access: %w", err)
 	}
 
-	// No valid access method
-	if !userID.Valid && publicToken == nil {
-		return nil, fmt.Errorf("access denied")
+	if !canAccess {
+		return nil, fmt.Errorf("permission denied")
 	}
-	return nil, fmt.Errorf("permission denied")
+
+	return &model.File{
+		ID:         requestedFile.ID.String(),
+		Filename:   requestedFile.Filename,
+		UploadDate: requestedFile.UploadDate.Time,
+		Size:       int32(requestedFile.SizeBytes),
+		MimeType:   requestedFile.MimeType,
+	}, nil
 }
 
 // GetFilesInFolder is the resolver for the getFilesInFolder field.
