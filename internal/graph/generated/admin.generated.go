@@ -44,7 +44,7 @@ type QueryResolver interface {
 	GetFilesInFolder(ctx context.Context, folderID *string, publicToken *string, sort *model.FileSortInput, filter *model.FileFilterInput) ([]*model.File, error)
 	GetFoldersInFolder(ctx context.Context, folderID *string, publicToken *string, sort *model.FolderSortInput, filter *model.FolderFilterInput) ([]*postgres.Folder, error)
 	SearchFiles(ctx context.Context, query string, search string) ([]*model.File, error)
-	GetFolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error)
+	GetFolderDetails(ctx context.Context, folderID *string, publicToken *string) (*postgres.Folder, error)
 	GetFileShares(ctx context.Context, fileID string) ([]*postgres.Share, error)
 	GetFolderShares(ctx context.Context, folderID string) ([]*postgres.Share, error)
 	GetMyShares(ctx context.Context) ([]*postgres.Share, error)
@@ -360,7 +360,7 @@ func (ec *executionContext) field_Query_getFiles_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Query_getFolderDetails_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "folderId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "folderId", ec.unmarshalOID2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
@@ -2224,7 +2224,7 @@ func (ec *executionContext) _Query_getFolderDetails(ctx context.Context, field g
 		ec.fieldContext_Query_getFolderDetails,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().GetFolderDetails(ctx, fc.Args["folderId"].(string), fc.Args["publicToken"].(*string))
+			return ec.resolvers.Query().GetFolderDetails(ctx, fc.Args["folderId"].(*string), fc.Args["publicToken"].(*string))
 		},
 		nil,
 		ec.marshalOFolder2ᚖgithubᚗcomᚋYuanziXᚋfilesᚑbackendᚋinternalᚋdatabaseᚋpostgresᚐFolder,

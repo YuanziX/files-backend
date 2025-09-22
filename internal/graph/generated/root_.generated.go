@@ -149,7 +149,7 @@ type ComplexityRoot struct {
 		GetFileShares      func(childComplexity int, fileID string) int
 		GetFiles           func(childComplexity int, limit *int32, pageNo *int32) int
 		GetFilesInFolder   func(childComplexity int, folderID *string, publicToken *string, sort *model.FileSortInput, filter *model.FileFilterInput) int
-		GetFolderDetails   func(childComplexity int, folderID string, publicToken *string) int
+		GetFolderDetails   func(childComplexity int, folderID *string, publicToken *string) int
 		GetFolderShares    func(childComplexity int, folderID string) int
 		GetFoldersInFolder func(childComplexity int, folderID *string, publicToken *string, sort *model.FolderSortInput, filter *model.FolderFilterInput) int
 		GetMyShares        func(childComplexity int) int
@@ -752,7 +752,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.GetFolderDetails(childComplexity, args["folderId"].(string), args["publicToken"].(*string)), true
+		return e.complexity.Query.GetFolderDetails(childComplexity, args["folderId"].(*string), args["publicToken"].(*string)), true
 
 	case "Query.getFolderShares":
 		if e.complexity.Query.GetFolderShares == nil {
@@ -1178,7 +1178,7 @@ extend type Query {
     filter: FolderFilterInput
   ): [Folder!]!
   searchFiles(query: String!, search: String!): [File!]!
-  getFolderDetails(folderId: ID!, publicToken: String): Folder
+  getFolderDetails(folderId: ID, publicToken: String): Folder
 }
 
 extend type Mutation {

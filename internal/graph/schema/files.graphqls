@@ -116,7 +116,7 @@ extend type Query {
     filter: FolderFilterInput
   ): [Folder!]!
   searchFiles(query: String!, search: String!): [File!]!
-  getFolderDetails(folderId: ID!, publicToken: String): Folder
+  getFolderDetails(folderId: ID, publicToken: String): Folder
 }
 
 extend type Mutation {

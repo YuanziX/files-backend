@@ -41,14 +41,71 @@ func (r *folderResolver) ParentID(ctx context.Context, obj *postgres.Folder) (*s
 
 // ChildrenFolders is the resolver for the childrenFolders field.
 func (r *folderResolver) ChildrenFolders(ctx context.Context, obj *postgres.Folder) ([]*postgres.Folder, error) {
-	folderID := obj.ID.String()
-	return r.Resolver.Query().GetFoldersInFolder(ctx, &folderID, nil, nil, nil)
+	var folderPtrs []*postgres.Folder
+
+	if obj.Name == "Root" {
+		folders, err := r.DB.ListRootFoldersByOwner(ctx, utils.GetUserID(ctx))
+		if err != nil {
+			return nil, fmt.Errorf("failed to list root folders: %w", err)
+		}
+		folderPtrs = make([]*postgres.Folder, len(folders))
+		for i := range folders {
+			folderPtrs[i] = &folders[i]
+		}
+	} else {
+		folders, err := r.DB.ListSubfoldersByParent(ctx, obj.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list subfolders: %w", err)
+		}
+		folderPtrs = make([]*postgres.Folder, len(folders))
+		for i := range folders {
+			folderPtrs[i] = &folders[i]
+		}
+	}
+	return folderPtrs, nil
 }
 
 // ChildrenFiles is the resolver for the childrenFiles field.
 func (r *folderResolver) ChildrenFiles(ctx context.Context, obj *postgres.Folder) ([]*model.File, error) {
-	folderID := obj.ID.String()
-	return r.Resolver.Query().GetFilesInFolder(ctx, &folderID, nil, nil, nil)
+	var fileModels []*model.File
+
+	if obj.Name == "Root" {
+		userID := utils.GetUserID(ctx)
+		if !userID.Valid {
+			return nil, fmt.Errorf("access required to get root files")
+		}
+		files, err := r.DB.ListRootFilesByOwner(ctx, utils.GetUserID(ctx))
+		if err != nil {
+			return nil, fmt.Errorf("failed to list root files: %w", err)
+		}
+		fileModels = make([]*model.File, len(files))
+		for i := range files {
+			fileModels[i] = &model.File{
+				ID:         files[i].ID.String(),
+				Filename:   files[i].Filename,
+				UploadDate: files[i].UploadDate.Time,
+				Size:       int32(files[i].SizeBytes),
+				MimeType:   files[i].MimeType,
+			}
+		}
+	} else {
+		files, err := r.DB.ListFilesByFolder(ctx, obj.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list files in folder: %w", err)
+		}
+		fileModels = make([]*model.File, len(files))
+		for i := range files {
+			fileModels[i] = &model.File{
+				ID:         files[i].ID.String(),
+				Filename:   files[i].Filename,
+				UploadDate: files[i].UploadDate.Time,
+				Size:       int32(files[i].SizeBytes),
+				MimeType:   files[i].MimeType,
+			}
+		}
+	}
+
+	return fileModels, nil
 }
 
 // GetDownloadURL is the resolver for the getDownloadURL field.
@@ -714,13 +771,19 @@ func (r *queryResolver) SearchFiles(ctx context.Context, query string, search st
 }
 
 // GetFolderDetails is the resolver for the getFolderDetails field.
-func (r *queryResolver) GetFolderDetails(ctx context.Context, folderID string, publicToken *string) (*postgres.Folder, error) {
+func (r *queryResolver) GetFolderDetails(ctx context.Context, folderID *string, publicToken *string) (*postgres.Folder, error) {
 	userID := utils.GetUserID(ctx)
 	if !userID.Valid && publicToken == nil {
 		return nil, fmt.Errorf("access denied")
 	}
 
-	folderUUID := utils.GetPgUUID(&folderID)
+	if folderID == nil && publicToken == nil {
+		return &postgres.Folder{
+			Name: "Root",
+		}, nil
+	}
+
+	folderUUID := utils.GetPgUUID(folderID)
 	if !folderUUID.Valid {
 		return nil, fmt.Errorf("invalid folderId")
 	}
