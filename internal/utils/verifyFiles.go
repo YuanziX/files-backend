@@ -36,10 +36,28 @@ var mimeAliases = map[string][]string{
 	},
 }
 
+// generic mime for binary files
+var genericBinaryTypes = []string{
+	"application/octet-stream",
+	"application/x-executable",
+	"application/x-sharedlib",
+	"application/x-msdos-program",
+	"application/x-msdownload",
+	"application/x-dosexec",
+}
+
 func IsMimeMatch(detected, expected string) bool {
 	if detected == expected {
 		return true
 	}
+
+	// handles executables and other generic binary types
+	for _, genericType := range genericBinaryTypes {
+		if detected == genericType || expected == genericType {
+			return true
+		}
+	}
+
 	if aliases, ok := mimeAliases[expected]; ok {
 		for _, alias := range aliases {
 			if detected == alias {
